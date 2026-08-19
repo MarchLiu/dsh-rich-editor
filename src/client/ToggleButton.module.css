@@ -1,0 +1,25 @@
+/* Notebook toggle: same 28px circle chrome as the composer's attach control,
+   so the tool row reads as one family. */
+
+.toggle {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  background: var(--dsw-specific-selector);
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  background: var(--dsw-alias-interactive-bg-hover-solid);
+}
+
+/* Open state: the stronger accent hover fill marks the live panel below. */
+.active,
+.active:hover {
+  background: var(--dsw-alias-interactive-bg-hover-accent);
+}

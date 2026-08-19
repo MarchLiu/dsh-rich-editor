@@ -1,0 +1,10 @@
+# The rich-editor bundle patch: one insert layer adding the notebook plugin
+# to a dsh profile. Apply by listing this bundle in the profile's
+# `dsh.profile.bundles`, or let `dsh plugin --profile <name> add @mars/dsh-rich-editor`
+# wire the dependency; the profile's healed node_modules fallback resolves the
+# bare row name.
+
+- insert:
+    # Browser plane: the notebook toggle + editor card in the composer region.
+    - id: ui-rich-editor
+      name: '@mars/dsh-rich-editor'

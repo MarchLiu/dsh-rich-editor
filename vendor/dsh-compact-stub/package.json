@@ -1,0 +1,7 @@
+{
+  "name": "@deepseek-ai/dsh-compact",
+  "version": "0.0.0-stub",
+  "description": "Install-time stub: the npm 0.0.1-rc.1 dsh snapshot depends on this pre-rename name that was never published. The rich-editor plugin's test surface never imports compaction code.",
+  "type": "module",
+  "main": "index.js"
+}
