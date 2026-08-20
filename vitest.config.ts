@@ -20,6 +20,10 @@ export default defineConfig({
     alias: [
       { find: /^@deepseek-ai\/dsh-client-runtime\/client$/, replacement: harnessSrc('runtime') },
       { find: /^@deepseek-ai\/dsh-client-locale\/client$/, replacement: harnessSrc('locale') },
+      // The published dsh-client-test-runtime 0.1.0-rc.x build references
+      // unshipped source paths (…ui-renderer/src/client/bind.ts); resolve it
+      // (and the web-react bindings it pairs with) onto the checkout too.
+      { find: /^@deepseek-ai\/dsh-client-test-runtime$/, replacement: harnessSrc('test-runtime', 'src/index.ts') },
     ],
   },
   test: {

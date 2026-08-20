@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
-import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import { makeTranslate } from './make-translate.ts'
 import { RichEditorToggle, type RichEditorToggleProps } from '../src/client/ToggleButton.tsx'
 import { createRichEditorStore } from '../src/client/store.ts'
 import { zh } from '../src/client/locales.ts'

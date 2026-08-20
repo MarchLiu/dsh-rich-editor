@@ -1,7 +1,0 @@
-{
-  "name": "@deepseek-ai/dsh-type-meta",
-  "version": "0.0.1-rc.1",
-  "description": "Install-time stub for a pre-rename npm name the 0.0.1-rc.1 dsh snapshot depends on; the rich-editor test surface never imports it.",
-  "type": "module",
-  "main": "index.js"
-}
