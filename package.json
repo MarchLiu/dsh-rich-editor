@@ -1,5 +1,5 @@
 {
-  "name": "@mars/dsh-rich-editor",
+  "name": "@mars.liu/dsh-rich-editor",
   "description": "Third-party dsh web plugin: a rich Markdown notebook for the composer region — tool-row toggle plus a CodeMirror editor card with Codex-style list editing, submitted through the conversation service",
   "version": "0.1.0",
   "publishConfig": {
@@ -49,6 +49,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "license": "MIT",
+  "keywords": ["dsh-plugin", "deepseek-harness", "codemirror", "markdown", "rich-editor"],
   "dependencies": {
     "@codemirror/commands": "^6.0.0",
     "@codemirror/lang-markdown": "^6.0.0",

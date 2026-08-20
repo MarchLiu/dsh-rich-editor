@@ -1,4 +1,4 @@
-# @mars/dsh-rich-editor
+# @mars.liu/dsh-rich-editor
 
 English | [中文](README.zh.md)
 
@@ -11,7 +11,7 @@ Submission rides the scope-addressed `conversation` service's `send` verb — th
 ## Install
 
 ```sh
-dsh plugin --profile web add @mars/dsh-rich-editor
+dsh plugin --profile web add @mars.liu/dsh-rich-editor
 ```
 
 The package carries its own bundle patch (`cordis.patch.yml` adds the `ui-rich-editor` row); list the bundle in the profile's `dsh.profile.bundles` if you compose profiles by hand. From a checkout:

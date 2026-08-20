@@ -1,5 +1,5 @@
 /**
- * Self-contained build for @mars/dsh-rich-editor, replicating the dsh client
+ * Self-contained build for @mars.liu/dsh-rich-editor, replicating the dsh client
  * plugin loader contract (see the harness's packages/client/tsdown.client.ts,
  * the authoritative preset this mirrors):
  *
@@ -18,7 +18,7 @@ import { basename, dirname, resolve as resolvePath, sep } from 'node:path'
 import { transform } from 'lightningcss'
 import type { UserConfig } from 'tsdown'
 
-const ID = '@mars/dsh-rich-editor'
+const ID = '@mars.liu/dsh-rich-editor'
 
 /** Externals the dsh loader answers from its module table (platform seed entries). */
 const CLIENT_EXTERNALS = [

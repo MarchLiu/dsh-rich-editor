@@ -1,4 +1,4 @@
-# @mars/dsh-rich-editor
+# @mars.liu/dsh-rich-editor
 
 [English](README.md) | 中文
 
@@ -11,7 +11,7 @@
 ## 安装
 
 ```sh
-dsh plugin --profile web add @mars/dsh-rich-editor
+dsh plugin --profile web add @mars.liu/dsh-rich-editor
 ```
 
 包自带 bundle patch（`cordis.patch.yml` 添加 `ui-rich-editor` 行）；手动编排 profile 时把本 bundle 列进 `dsh.profile.bundles`。从源码构建：
