@@ -16,10 +16,10 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import { EditorPanel } from './EditorPanel.tsx'
 import { RichEditorToggle } from './ToggleButton.tsx'
 import { en, zh, type RichEditorKey } from './locales.ts'
-import type { RichEditorInjected } from './slots.ts'
+import type { RichEditorComposerBridge, RichEditorInjected } from './slots.ts'
 import { createRichEditorStore } from './store.ts'
 
-export type { RichEditorInjected } from './slots.ts'
+export type { RichEditorComposerBridge, RichEditorInjected } from './slots.ts'
 export { createRichEditorStore } from './store.ts'
 export type { RichEditorKey } from './locales.ts'
 
@@ -62,6 +62,25 @@ export function apply(ctx: ClientContext): void {
     }
   }
 
+  // Lazy per-call resolution: the session scope may not be queryable yet at
+  // inject time, and a missed resolution degrades to a no-op bridge rather
+  // than a broken panel.
+  const composerFor = (sessionId: SessionId): RichEditorComposerBridge => {
+    const resolve = () => {
+      const actx = ctx.sessions.scope(sessionId)
+      const conversation = actx?.get('conversation')
+      return actx === undefined || conversation === undefined ? undefined : conversation.input.for(actx)
+    }
+    return {
+      getDraft: (): string => resolve()?.state.getSnapshot().draft ?? '',
+      setDraft: (text: string): void => { resolve()?.setDraft(text) },
+      subscribe: (fn: () => void): (() => void) => {
+        const input = resolve()
+        return input === undefined ? () => {} : input.state.subscribe(fn)
+      },
+    }
+  }
+
   ctx.slots.inject('conversation.input.left', () => ctx.slots.register(
     { name: 'conversation.input.left', id: 'rich-editor', store, locale: NS },
     RichEditorToggle,
@@ -75,6 +94,7 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     inject: (sessionId): RichEditorInjected => ({
       submit: text => submit(sessionId, text),
+      composer: composerFor(sessionId),
     }),
   }, EditorPanel))
 }

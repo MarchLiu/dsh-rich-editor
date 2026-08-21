@@ -28,6 +28,13 @@ export interface MarkdownEditorOptions {
 export interface MarkdownEditorHandle {
   /** Replace the whole document (submit clear); onChange fires through the listener. */
   setText(text: string): void
+  /**
+   * Apply an externally-authored document (native-composer sync) as a
+   * minimal common-prefix/suffix splice. CodeMirror maps the existing
+   * selection through the change, so a caret outside the edited range
+   * survives; onChange fires through the listener like any edit.
+   */
+  applyExternal(text: string): void
   /** Move keyboard focus into the editor. */
   focus(): void
   /** Tear the view down and remove its DOM. */
@@ -90,6 +97,20 @@ export function createMarkdownEditor(host: HTMLElement, options: MarkdownEditorO
   return {
     setText(text: string): void {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } })
+    },
+    applyExternal(text: string): void {
+      const prev = view.state.doc.toString()
+      if (prev === text) return
+      let start = 0
+      const prevEnd = prev.length
+      const nextEnd = text.length
+      while (start < prevEnd && start < nextEnd && prev[start] === text[start]) start += 1
+      let tail = 0
+      while (tail < prevEnd - start && tail < nextEnd - start
+        && prev[prevEnd - 1 - tail] === text[nextEnd - 1 - tail]) tail += 1
+      view.dispatch({
+        changes: { from: start, to: prevEnd - tail, insert: text.slice(start, nextEnd - tail) },
+      })
     },
     focus(): void {
       view.focus()

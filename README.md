@@ -12,6 +12,8 @@ The editor is a CodeMirror 6 instance over the Markdown language: syntax highlig
 
 Submission rides the scope-addressed `conversation` service's `send` verb — the same path the plain composer's submit rides — so adjudication, queueing, and prompt-error reporting behave exactly like a typed prompt. A failed send surfaces on the session's composer notice channel and the panel keeps its draft.
 
+The notebook and the native composer are two editing surfaces over one draft: opening the panel adopts whatever the native editor already holds (an empty composer instead receives the notebook's kept draft); while the panel is open, every edit on either side mirrors live to the other — notebook edits ride the session input facade's single `setDraft` write path, native edits flow back through a subscription on the facade's InputState store applied as a minimal-diff splice (an equality guard breaks the echo loop and preserves a caret outside the edited range); closing leaves the final text in the native editor, and a successful submit clears both surfaces.
+
 ![How the pieces connect: two composer slots, one session store, one send verb](docs/img/architecture.png)
 
 ## Install

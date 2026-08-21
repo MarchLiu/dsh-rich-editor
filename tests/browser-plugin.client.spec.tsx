@@ -12,7 +12,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vitest'
-import { SlotRegistry, type SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import { SlotRegistry, createSnapshotStore, type SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import type { IConversation } from '@deepseek-ai/dsh-client-ui-conversation/src/client/service.ts'
 import type { RichEditorInjected } from '../src/client/slots.ts'
@@ -40,9 +40,13 @@ async function bench(options: { scopeGone?: boolean; rejectsWith?: unknown } = {
     ? Promise.reject(options.rejectsWith)
     : Promise.resolve())
   const notify = vi.fn()
+  // The composer half of the fake input facade: a real snapshot store so a
+  // mounted panel could sync against it (only the bridge path reads it).
+  const inputState = createSnapshotStore<{ draft: string }>({ draft: '' })
+  const setDraft = vi.fn((text: string) => { inputState.set({ draft: text }) })
   const conversation = {
     send,
-    input: { for: () => ({ notify }) },
+    input: { for: () => ({ notify, setDraft, state: inputState }) },
   } as unknown as IConversation
   ctx.provide('conversation', conversation)
   ctx.provide('sessions', {
@@ -90,6 +94,22 @@ describe('ui-rich-editor browser plugin', () => {
     await b.fiber.await()
     await expect(b.injectFace(sid('s1'))?.submit('# 笔记')).resolves.toBe(true)
     expect(b.send).toHaveBeenCalledWith('# 笔记')
+  })
+
+  it('the dock inject hands the panel a working composer bridge', async () => {
+    const b = await bench()
+    await b.fiber.await()
+    const face = b.injectFace(sid('s1'))
+    expect(face?.composer.getDraft()).toBe('')
+    face?.composer.setDraft('- 同步')
+    expect(face?.composer.getDraft()).toBe('- 同步')
+    let fired = 0
+    const unsubscribe = face?.composer.subscribe(() => { fired += 1 })
+    face?.composer.setDraft('- 再次')
+    expect(fired).toBe(1)
+    unsubscribe?.()
+    face?.composer.setDraft('- 退订后')
+    expect(fired).toBe(1)
   })
 
   it('a rejected send surfaces a notice and resolves false', async () => {

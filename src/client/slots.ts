@@ -4,6 +4,26 @@
  * the panel) are declared by ui-conversation; this plugin contributes only.
  */
 
+/**
+ * The native composer bridge: the narrow face the panel needs over the
+ * session's input facade (`conversation.input.for(actx)` → SessionInput).
+ * Kept structural so tests mount a plain fake; every write is the facade's
+ * single public draft path, so occurrence math and undo history stay whole.
+ */
+export interface RichEditorComposerBridge {
+  /** Read the native composer's live draft. */
+  getDraft(): string
+  /** Replace the native composer's draft (the facade's single write path). */
+  setDraft(text: string): void
+  /**
+   * Subscribe to native draft mutations (the facade's InputState store
+   * fires on every machine dispatch).
+   * @param fn - change listener (no payload; read via getDraft).
+   * @returns the unsubscribe handle.
+   */
+  subscribe(fn: () => void): () => void
+}
+
 /** Business verbs handed to the dock panel through its own inject. */
 export interface RichEditorInjected {
   /**
@@ -15,4 +35,6 @@ export interface RichEditorInjected {
    * @returns true when the prompt was accepted into the session queue.
    */
   readonly submit: (text: string) => Promise<boolean>
+  /** The native composer bridge used for open/close handoff and live sync. */
+  readonly composer: RichEditorComposerBridge
 }
