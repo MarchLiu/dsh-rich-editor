@@ -2,11 +2,17 @@
 
 [English](README.md) | 中文
 
+![打开 Markdown 笔记本后的输入区](docs/img/notebook-panel.png)
+
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的第三方 Web 插件：输入区的富 Markdown 笔记本。浏览器半边向 `dsh-client-ui-conversation` 拥有的输入区贡献两个条目：工具行开关（`conversation.input.left`）与输入区上下文栈中的编辑卡片（`conversation.input.dock`）。两个条目共享同一个按会话作用域的 store 句柄，因此进行中的草稿在关闭/重开面板、表面重挂载后仍然保留；引擎按会话 id 切分 session store，每个会话各有自己的笔记本。
 
 编辑器是运行 Markdown 语言扩展的 CodeMirror 6 实例：草稿语法高亮（含 GFM 表格）、原生 undo/redo 与选区，以及 Codex 风格的 Enter 列表编辑——在非空列表项上按 Enter 打开下一项（有序标记 `1.` → `2.` 递增，复选项重新变为未勾选，缩进保留，光标在行中时拆分该项），在空列表项上按 Enter 删除标记、回到普通文本编辑。非列表行的 Enter 落回普通换行。`Mod+Enter` 提交。
 
+![Enter 列表编辑：打开下一项、复选框重置、空项去标记](docs/img/enter-list-editing.png)
+
 提交走按作用域寻址的 `conversation` 服务的 `send` 动词——与普通输入框的提交同一条路径——因此裁决、排队与 prompt 错误报告的行为与手打 prompt 完全一致。发送失败时会话的 composer 通知通道会浮现错误，草稿保留在面板中。
+
+![组件关系：两个输入区插槽、一个会话 store、一个 send 动词](docs/img/architecture.png)
 
 ## 安装
 

@@ -3,3 +3,4 @@ lib/
 *.tsbuildinfo
 .DS_Store
 .pnpm-store/
+.dsh-vision-toolkit/

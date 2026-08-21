@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #17181c; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Segoe UI", sans-serif;
+    color: #e6e8ef;
+    display: flex; justify-content: center; align-items: center;
+    padding: 30px 34px;
+  }
+  .strip { display: flex; gap: 16px; width: 100%; max-width: 920px; }
+  .step { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .cap  { font-size: 13px; color: #a6abbb; line-height: 19px; min-height: 38px; }
+  .cap b { color: #e6e8ef; font-weight: 600; }
+  .key {
+    display: inline-block; padding: 1px 7px; margin: 0 2px;
+    border: 1px solid rgba(255,255,255,0.16); border-bottom-width: 2px;
+    border-radius: 6px; background: #262932;
+    font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #e6e8ef;
+  }
+  .card {
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 12px; background: #1e2026;
+    padding: 12px 14px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px; line-height: 21px;
+    white-space: pre; color: #ccd1dd;
+    min-height: 150px;
+  }
+  .mk  { color: #6f7583; }
+  .new { background: rgba(77,107,254,0.16); border-radius: 3px; }
+  .caret { display: inline-block; width: 2px; height: 15px; background: #e6e8ef; vertical-align: -2px; }
+  .badge {
+    align-self: flex-start;
+    font-size: 11px; font-weight: 600; letter-spacing: .04em;
+    color: #7cc4f8; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+  <div class="strip">
+
+    <div class="step">
+      <div class="badge">1 · ordered</div>
+      <div class="card"><span class="mk">1.</span> Write tests<span class="caret"></span>
+<span class="new"><span class="mk">2.</span> </span></div>
+      <div class="cap"><span class="key">Enter</span> on a non-empty item opens the next one — marker increments <b>1. → 2.</b>, indent kept.</div>
+    </div>
+
+    <div class="step">
+      <div class="badge">2 · task</div>
+      <div class="card"><span class="mk">-</span> [<span class="mk">x</span>] write tests
+<span class="new"><span class="mk">-</span> [ ] </span><span class="caret"></span></div>
+      <div class="cap"><span class="key">Enter</span> continues a task list with the checkbox <b>unchecked again</b>.</div>
+    </div>
+
+    <div class="step">
+      <div class="badge">3 · exit</div>
+      <div class="card"><span class="mk">-</span> write tests
+<span style="color:#7c8290">plain text line</span><span class="caret"></span></div>
+      <div class="cap"><span class="key">Enter</span> on an <b>empty</b> item drops the marker — you are back to plain editing. <span class="key">Mod+Enter</span> submits.</div>
+    </div>
+
+  </div>
+</body>
+</html>

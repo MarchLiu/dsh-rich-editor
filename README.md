@@ -2,11 +2,17 @@
 
 English | [中文](README.zh.md)
 
+![Markdown notebook open above the plain composer](docs/img/notebook-panel.png)
+
 Third-party [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) web plugin: a rich Markdown notebook for the composer region. Its browser half contributes two entries to the composer region that `dsh-client-ui-conversation` owns: a tool-row toggle (`conversation.input.left`) and an editor card in the composer context stack (`conversation.input.dock`). Both entries share one per-session store handle, so the in-progress draft survives closing and reopening the panel, surface remounts, and — because the engine scopes session stores by session id — each session keeps its own notebook.
 
 The editor is a CodeMirror 6 instance over the Markdown language: syntax highlighting for the draft (GFM tables included), native undo/redo and selection, and Enter-key list editing in the Codex style — pressing Enter on a non-empty list item opens the next item (ordered markers increment `1.` → `2.`, checkbox items reopen unchecked, indentation is preserved, and a mid-line caret splits the item), while Enter on an empty item drops the marker and returns the line to plain-text editing. Enter on a non-list line falls through to a plain newline. `Mod+Enter` submits.
 
+![Enter-key list editing: next item, unchecked checkbox, marker dropped](docs/img/enter-list-editing.png)
+
 Submission rides the scope-addressed `conversation` service's `send` verb — the same path the plain composer's submit rides — so adjudication, queueing, and prompt-error reporting behave exactly like a typed prompt. A failed send surfaces on the session's composer notice channel and the panel keeps its draft.
+
+![How the pieces connect: two composer slots, one session store, one send verb](docs/img/architecture.png)
 
 ## Install
 

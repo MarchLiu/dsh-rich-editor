@@ -1,0 +1,165 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #17181c; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Segoe UI", sans-serif;
+    color: #e6e8ef;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    min-height: 100vh;
+    padding: 28px 32px 22px;
+  }
+  .stage {
+    width: 100%;
+    max-width: 880px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ---- notebook dock card ---- */
+  .card {
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 12px;
+    background: #1e2026;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+  }
+  .editor {
+    padding: 12px 14px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 21px;
+    white-space: pre;
+    color: #ccd1dd;
+  }
+  .caret {
+    display: inline-block;
+    width: 2px;
+    height: 15px;
+    background: #e6e8ef;
+    vertical-align: -2px;
+  }
+  /* CodeMirror-ish markdown token colors */
+  .h   { color: #7cc4f8; font-weight: 600; }
+  .mk  { color: #6f7583; }              /* markers: # - | [ ] */
+  .em  { color: #e6e8ef; font-style: italic; }
+  .str { color: #a8d08d; }              /* table cell text */
+  .kbd { color: #d7b9f5; }              /* inline code */
+  .num { color: #f2b96b; }
+
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .hint { font-size: 12px; color: #7c8290; }
+  .hint b { color: #aeb4c2; font-weight: 500; }
+  .btns { display: flex; gap: 8px; }
+  .btn {
+    height: 28px; padding: 0 14px; border: none; border-radius: 8px;
+    font-size: 13px; line-height: 20px; font-weight: 500;
+  }
+  .btn.secondary { background: transparent; color: #a6abbb; }
+  .btn.primary   { background: #e6e8ef; color: #17181c; }
+
+  /* ---- tool row + plain composer ---- */
+  .composer {
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 14px;
+    background: #1e2026;
+    padding: 10px 12px 8px;
+  }
+  .input {
+    font-size: 14px;
+    color: #7c8290;
+    padding: 2px 2px 10px;
+  }
+  .toolrow { display: flex; align-items: center; gap: 6px; }
+  .tool {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #a6abbb;
+    position: relative;
+  }
+  .tool.active { background: rgba(255,255,255,0.10); color: #e6e8ef; }
+  .tool .dot {
+    position: absolute; top: 3px; right: 3px;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #4d6bfe;
+  }
+  .spacer { flex: 1; }
+  .send {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #17181c; background: #e6e8ef;
+  }
+  svg { display: block; }
+
+  /* tooltip bubble on the toggle */
+  .tip {
+    position: absolute; bottom: 40px; left: -8px;
+    background: #2a2d35; border: 1px solid rgba(255,255,255,0.10);
+    color: #e6e8ef; font-size: 12px; padding: 5px 9px; border-radius: 7px;
+    white-space: nowrap;
+  }
+  .tip::after {
+    content: ""; position: absolute; left: 14px; bottom: -4px;
+    width: 8px; height: 8px; background: #2a2d35;
+    border-right: 1px solid rgba(255,255,255,0.10);
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    transform: rotate(45deg);
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+
+    <div class="card">
+      <div class="editor"><span class="h">## Release checklist</span>
+<span class="mk">-</span> [<span class="mk"> </span>] reproduce on <span class="num">0.0.1-rc.1</span>
+<span class="mk">-</span> [x] add <span class="kbd">`enter-list`</span> tests
+<span class="mk">-</span> [ ] <span class="em">ship it</span>
+
+<span class="h">| case | Enter |</span>
+<span class="mk">|---|---|</span>
+<span class="mk">|</span> <span class="str">non-empty item</span> <span class="mk">|</span> <span class="str">opens next</span> <span class="mk">|</span>
+<span class="mk">|</span> <span class="str">empty item</span> <span class="mk">|</span> <span class="str">drops marker</span> <span class="mk">|</span>
+<span class="caret"></span></div>
+      <div class="footer">
+        <div class="hint"><b>Mod+Enter</b> sends · draft survives close &amp; reopen</div>
+        <div class="btns">
+          <button class="btn secondary">Close notebook</button>
+          <button class="btn primary">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="input">Send a message</div>
+      <div class="toolrow">
+        <div class="tool" aria-label="attach">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </div>
+        <div class="tool active">
+          <div class="tip">Markdown notebook</div>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/><path d="M9 6h7"/></svg>
+          <div class="dot"></div>
+        </div>
+        <div class="spacer"></div>
+        <div class="send">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 14 0"/><path d="m13 6 6 6-6 6"/></svg>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
