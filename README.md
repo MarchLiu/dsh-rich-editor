@@ -8,6 +8,8 @@ Third-party [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 
 
 The editor is a CodeMirror 6 instance over the Markdown language: syntax highlighting for the draft (GFM tables included), native undo/redo and selection, and Enter-key list editing in the Codex style — pressing Enter on a non-empty list item opens the next item (ordered markers increment `1.` → `2.`, checkbox items reopen unchecked, indentation is preserved, and a mid-line caret splits the item), while Enter on an empty item drops the marker and returns the line to plain-text editing. Enter on a non-list line falls through to a plain newline. `Mod+Enter` submits.
 
+An **Edit / Preview** pair of tabs sits at the card's top edge. Preview renders the live draft through `marked` and sanitizes the result with DOMPurify before it touches the DOM — a read-only look at the formatted Markdown (GFM tables, task lists, fenced code, blockquotes), never a modification of what gets submitted: the draft text rides the send path verbatim. Toggling to Preview hides the CodeMirror host instead of unmounting it, so undo history and caret survive the round-trip.
+
 ![Enter-key list editing: next item, unchecked checkbox, marker dropped](docs/img/enter-list-editing.png)
 
 Submission rides the scope-addressed `conversation` service's `send` verb — the same path the plain composer's submit rides — so adjudication, queueing, and prompt-error reporting behave exactly like a typed prompt. A failed send surfaces on the session's composer notice channel and the panel keeps its draft.

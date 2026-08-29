@@ -8,6 +8,8 @@
 
 编辑器是运行 Markdown 语言扩展的 CodeMirror 6 实例：草稿语法高亮（含 GFM 表格）、原生 undo/redo 与选区，以及 Codex 风格的 Enter 列表编辑——在非空列表项上按 Enter 打开下一项（有序标记 `1.` → `2.` 递增，复选项重新变为未勾选，缩进保留，光标在行中时拆分该项），在空列表项上按 Enter 删除标记、回到普通文本编辑。非列表行的 Enter 落回普通换行。`Mod+Enter` 提交。
 
+卡片顶边有一对**编辑 / 预览**标签。预览通过 `marked` 实时渲染草稿，并经 DOMPurify 消毒后才接触 DOM——它只是格式化 Markdown（GFM 表格、任务列表、围栏代码、引用块）的只读视图，绝不改动提交内容：草稿文本原样走发送通道。切到预览时 CodeMirror 宿主只是隐藏而非卸载，undo 历史与光标在往返后原样保留。
+
 ![Enter 列表编辑：打开下一项、复选框重置、空项去标记](docs/img/enter-list-editing.png)
 
 提交走按作用域寻址的 `conversation` 服务的 `send` 动词——与普通输入框的提交同一条路径——因此裁决、排队与 prompt 错误报告的行为与手打 prompt 完全一致。发送失败时会话的 composer 通知通道会浮现错误，草稿保留在面板中。

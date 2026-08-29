@@ -16,6 +16,7 @@ import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-cli
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import clsx from 'clsx'
 import { createMarkdownEditor, type MarkdownEditorHandle } from './editor.ts'
+import { renderMarkdown } from './preview.ts'
 import type { RichEditorComposerBridge, RichEditorInjected } from './slots.ts'
 import type { createRichEditorStore } from './store.ts'
 import css from './EditorPanel.module.css'
@@ -52,6 +53,15 @@ function EditorCard({ useStore, actions, submit, composer, t }: EditorCardProps)
   // editor's change listener; handlers must not wait a render round).
   const textRef = useRef(useStore(s => s.text))
   const [submitting, setSubmitting] = useState(false)
+  // Surface switch: the CodeMirror editor keeps mounting (state preserved)
+  // while hidden, so toggling to preview and back never drops draft or caret.
+  // `split` keeps both surfaces visible side by side, preview mirroring the
+  // draft as it is typed.
+  const [mode, setMode] = useState<'edit' | 'preview' | 'split'>('edit')
+  // Store-seat mirror of the draft: both editing paths write actions.setText,
+  // so a store subscription re-renders the preview even when the keystrokes
+  // land in the hidden editor or the native composer.
+  const draft = useStore(s => s.text)
 
   const doSubmit = async (): Promise<void> => {
     const text = textRef.current
@@ -128,7 +138,54 @@ function EditorCard({ useStore, actions, submit, composer, t }: EditorCardProps)
   return (
     <div className={css.dock}>
       <div className={css.card}>
-        <div ref={hostRef} className={css.editorHost} />
+        <div className={css.tabs} role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'edit'}
+            className={clsx(css.tab, mode === 'edit' && css.tabActive)}
+            onClick={() => { setMode('edit') }}
+          >
+            {t('panel.edit')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'preview'}
+            className={clsx(css.tab, mode === 'preview' && css.tabActive)}
+            onClick={() => { setMode('preview') }}
+          >
+            {t('panel.preview')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'split'}
+            className={clsx(css.tab, mode === 'split' && css.tabActive)}
+            onClick={() => { setMode('split') }}
+          >
+            {t('panel.split')}
+          </button>
+        </div>
+        {/* Hidden, not unmounted: CodeMirror state (undo history, caret)
+            survives a preview round-trip; in split mode it stays visible as
+            the left column. */}
+        <div className={mode === 'split' ? css.splitRow : undefined}>
+          <div
+            ref={hostRef}
+            className={clsx(css.editorHost, mode === 'split' && css.editorSplit)}
+            hidden={mode === 'preview'}
+          />
+          {mode !== 'edit' && (
+            <div
+              className={clsx(css.previewHost, mode === 'split' && css.previewSplit)}
+              aria-label={t('panel.previewAria')}
+              /* Content passed through DOMPurify in renderMarkdown; no raw
+                 draft HTML ever reaches the DOM unsanitized. */
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(draft) }}
+            />
+          )}
+        </div>
         <div className={css.footer}>
           <button
             type="button"

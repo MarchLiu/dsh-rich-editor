@@ -60,6 +60,160 @@
   padding: 0;
 }
 
+/* Edit/preview tabs: a light segmented row pinned to the card's top edge. */
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 8px 0;
+}
+
+.tab {
+  height: 26px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  font-size: 12px;
+  line-height: 26px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.tabActive,
+.tabActive:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Split mode: editor left, live preview right, equal halves with a hairline
+   divider. The row's children keep their own scroll geometry. */
+.splitRow {
+  display: flex;
+  align-items: stretch;
+}
+
+.editorSplit {
+  flex: 1 1 50%;
+  min-width: 0;
+  border-right: 1px solid var(--dsw-alias-border-l1);
+}
+
+.previewSplit {
+  flex: 1 1 50%;
+  min-width: 0;
+}
+
+/* The rendered preview: mirrors the editor host's scroll geometry so the
+   card's height doesn't jump when switching surfaces. */
+.previewHost {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-font-family);
+}
+
+.previewHost :global(h1),
+.previewHost :global(h2),
+.previewHost :global(h3),
+.previewHost :global(h4) {
+  margin: 14px 0 6px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.previewHost :global(h1) { font-size: 18px; }
+.previewHost :global(h2) { font-size: 16px; }
+.previewHost :global(h3) { font-size: 14px; }
+.previewHost :global(h4) { font-size: 13px; }
+
+.previewHost :global(p) {
+  margin: 6px 0;
+}
+
+.previewHost :global(ul),
+.previewHost :global(ol) {
+  margin: 6px 0;
+  padding-left: 22px;
+}
+
+.previewHost :global(li) {
+  margin: 2px 0;
+}
+
+.previewHost :global(input[type='checkbox']) {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.previewHost :global(blockquote) {
+  margin: 8px 0;
+  padding: 2px 12px;
+  border-left: 3px solid var(--dsw-alias-border-l1);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.previewHost :global(code) {
+  font-family: var(--ds-font-family-code);
+  font-size: 12px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.previewHost :global(pre) {
+  margin: 8px 0;
+  padding: 10px 12px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.previewHost :global(pre code) {
+  background: transparent;
+  padding: 0;
+}
+
+.previewHost :global(table) {
+  margin: 8px 0;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.previewHost :global(th),
+.previewHost :global(td) {
+  border: 1px solid var(--dsw-alias-border-l1);
+  padding: 4px 10px;
+  text-align: left;
+}
+
+.previewHost :global(th) {
+  font-weight: 600;
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.previewHost :global(a) {
+  color: var(--dsw-alias-label-primary);
+  text-underline-offset: 2px;
+}
+
+.previewHost :global(hr) {
+  border: none;
+  border-top: 1px solid var(--dsw-alias-border-l1);
+  margin: 12px 0;
+}
+
+.previewHost :global(img) {
+  max-width: 100%;
+}
+
 .footer {
   display: flex;
   align-items: center;

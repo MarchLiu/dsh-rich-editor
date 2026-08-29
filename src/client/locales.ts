@@ -8,6 +8,10 @@ export const zh = {
   'panel.submitAria': '发送笔记本内容',
   'panel.close': '关闭笔记本',
   'panel.editorAria': 'Markdown 笔记本编辑器',
+  'panel.preview': '预览',
+  'panel.edit': '编辑',
+  'panel.previewAria': '预览渲染结果',
+  'panel.split': '并列',
 } satisfies Record<string, string>
 
 /** The richeditor namespace key union. */
@@ -21,4 +25,8 @@ export const en = {
   'panel.submitAria': 'Send notebook content',
   'panel.close': 'Close notebook',
   'panel.editorAria': 'Markdown notebook editor',
+  'panel.preview': 'Preview',
+  'panel.edit': 'Edit',
+  'panel.previewAria': 'Preview the rendered result',
+  'panel.split': 'Split',
 } satisfies Record<RichEditorKey, string>

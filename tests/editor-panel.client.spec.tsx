@@ -119,6 +119,28 @@ describe('EditorPanel', () => {
     expect(store.getSnapshot().text).toContain('新内容')
   })
 
+  it('split mode keeps the editor mounted and mirrors the draft live in the preview pane', () => {
+    mount({ text: '# 标题\n' })
+    fireEvent.click(screen.getByRole('tab', { name: '并列' }))
+    const preview = screen.getByLabelText('预览渲染结果')
+    expect(preview.innerHTML).toContain('<h1>标题</h1>')
+    // The editor stays mounted (not hidden) beside the preview.
+    const editor = screen.getByLabelText('Markdown 笔记本编辑器')
+    expect(editor.closest('[hidden]')).toBeNull()
+    // Typing keeps flowing to the store and the preview re-renders.
+    type('## 追加\n')
+    expect(preview.innerHTML).toContain('<h2>追加</h2>')
+  })
+
+  it('preview tab hides the editor host while keeping it mounted', () => {
+    mount({ text: '- 仅预览\n' })
+    fireEvent.click(screen.getByRole('tab', { name: '预览' }))
+    const preview = screen.getByLabelText('预览渲染结果')
+    expect(preview.innerHTML).toContain('仅预览')
+    const editor = screen.getByLabelText('Markdown 笔记本编辑器')
+    expect(editor.closest('[hidden]')).not.toBeNull()
+  })
+
   it('Ctrl+Enter inside the editor submits the draft', async () => {
     const { store, submit } = mount({ text: '- 键盘提交' })
     const content = screen.getByLabelText('Markdown 笔记本编辑器')
