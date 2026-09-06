@@ -113,7 +113,15 @@ export function buildExtensions(options: MarkdownEditorOptions): Extension[] {
     placeholder(options.placeholder),
     EditorView.contentAttributes.of({ 'aria-label': options.ariaLabel }),
     EditorView.updateListener.of((update) => {
-      if (update.docChanged) options.onChange(update.state.doc.toString())
+      if (!update.docChanged) return
+      // IME composition: CodeMirror applies every composition update as a
+      // doc change, but the panel mirrors each reported edit into the native
+      // composer, whose draft write steals focus back — and refocusing the
+      // view mid-composition kills the IME session (pinyin fragments commit
+      // as garbage). Suppress reports while composing; the compositionend
+      // flush installed in createMarkdownEditor reports the final document.
+      if (update.view.composing) return
+      options.onChange(update.state.doc.toString())
     }),
   ]
 }
@@ -129,6 +137,18 @@ export function createMarkdownEditor(host: HTMLElement, options: MarkdownEditorO
     parent: host,
     state: EditorState.create({ doc: options.initial, extensions: buildExtensions(options) }),
   })
+  // Composition flush: while the IME is active the update listener stays
+  // silent (see buildExtensions), so report the final document once the IME
+  // closes. The rAF deferral lets CodeMirror apply its closing composition
+  // sync first; guarded against a destroy racing the frame.
+  let destroyed = false
+  const onCompositionEnd = (): void => {
+    requestAnimationFrame(() => {
+      if (destroyed || view.composing) return
+      options.onChange(view.state.doc.toString())
+    })
+  }
+  view.dom.addEventListener('compositionend', onCompositionEnd)
   return {
     setText(text: string): void {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } })
@@ -151,6 +171,8 @@ export function createMarkdownEditor(host: HTMLElement, options: MarkdownEditorO
       view.focus()
     },
     destroy(): void {
+      destroyed = true
+      view.dom.removeEventListener('compositionend', onCompositionEnd)
       view.destroy()
     },
   }

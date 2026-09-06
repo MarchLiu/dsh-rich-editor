@@ -197,4 +197,130 @@ describe('EditorPanel composer bridge', () => {
     })
     expect(composer.getNative()).toBe('')
   })
+
+  it('a mirrored edit restores notebook focus when the composer steals it', () => {
+    // Simulate the native composer's Lexical selectEnd: every draft write
+    // yanks keyboard focus out of the notebook (what an Enter or IME commit
+    // used to trigger, leaving the next Enter to send from the composer).
+    const inner = makeComposer('')
+    const bridge: RichEditorComposerBridge = {
+      getDraft: inner.bridge.getDraft,
+      setDraft: (text) => {
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+        inner.bridge.setDraft(text)
+      },
+      subscribe: inner.bridge.subscribe,
+    }
+    const store = createRichEditorStore().create()
+    store.actions.setOpen(true)
+    render(<EditorPanel {...{
+      useStore: bindSnapshotSelector(store),
+      actions: store.actions,
+      submit: vi.fn(() => Promise.resolve(true)),
+      composer: bridge,
+      t,
+    } as EditorPanelProps} />)
+    const content = screen.getByLabelText('Markdown 笔记本编辑器')
+    act(() => { content.focus() })
+    type('- 焦点保持')
+    expect(inner.bridge.getDraft()).toBe('- 焦点保持')
+    expect(content.contains(document.activeElement)).toBe(true)
+  })
+})
+
+describe('EditorPanel mixed Chinese/English and IME compatibility', () => {
+  /** The live CodeMirror view behind the mounted notebook editor. */
+  function notebookView(): EditorView {
+    const content = screen.getByLabelText('Markdown 笔记本编辑器')
+    const host = content.closest('.cm-editor')
+    if (!(host instanceof HTMLElement)) throw new Error('editor host not found')
+    const view = EditorView.findFromDOM(host)
+    if (view === null) throw new Error('editor view not found')
+    return view
+  }
+
+  /** Dispatch a real Enter keydown at the notebook caret. */
+  function pressNotebookEnter() {
+    screen.getByLabelText('Markdown 笔记本编辑器').dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+    )
+  }
+
+  it('a mixed Chinese/English draft mirrors both ways and stays in sync', () => {
+    const { composer } = mount()
+    type('输入 input，混排 mixed 中文 english')
+    expect(composer.getNative()).toBe('输入 input，混排 mixed 中文 english')
+    act(() => composer.setNative('输入 input，混排 mixed 中文 english 追加 appended'))
+    expect(screen.getByLabelText('Markdown 笔记本编辑器').textContent).toContain('追加 appended')
+    // Both surfaces agree after the round-trip.
+    expect(composer.getNative()).toBe('输入 input，混排 mixed 中文 english 追加 appended')
+  })
+
+  it('Enter in the notebook continues a mixed list without touching the send path', () => {
+    const { store, composer, submit } = mount({ text: '- 输入english' })
+    const view = notebookView()
+    act(() => { view.dispatch({ selection: { anchor: view.state.doc.length } }) })
+    pressNotebookEnter()
+    expect(store.getSnapshot().text).toBe('- 输入english\n- ')
+    expect(composer.getNative()).toBe('- 输入english\n- ')
+    expect(submit).not.toHaveBeenCalled()
+  })
+
+  it('an open IME composition leaves the native draft untouched; commit mirrors once', async () => {
+    const { composer } = mount({ text: '- 输入english' })
+    const content = screen.getByLabelText('Markdown 笔记本编辑器')
+    const view = notebookView()
+    act(() => {
+      view.dispatch({ selection: { anchor: view.state.doc.length } })
+      content.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '' }))
+      ;(view as unknown as { inputState: { composing: number } }).inputState.composing = 1
+      view.dispatch({ changes: { from: view.state.doc.length, insert: 'shuru' } })
+    })
+    // Pinyin fragments never reach the native composer mid-composition.
+    expect(composer.getNative()).toBe('- 输入english')
+
+    const doc = view.state.doc.toString()
+    act(() => {
+      view.dispatch({ changes: { from: doc.length - 5, to: doc.length, insert: '输入' } })
+      view.dispatch({ selection: { anchor: view.state.doc.length } })
+      content.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '输入' }))
+    })
+    // The flush defers one frame; the native composer receives the final
+    // document exactly once.
+    await act(async () => {
+      await new Promise(resolve => requestAnimationFrame(resolve))
+    })
+    expect(composer.getNative()).toBe('- 输入english输入')
+  })
+
+  it('focus stays in the notebook across Enter on a mixed draft', () => {
+    const inner = makeComposer('')
+    const bridge: RichEditorComposerBridge = {
+      getDraft: inner.bridge.getDraft,
+      setDraft: (text) => {
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+        inner.bridge.setDraft(text)
+      },
+      subscribe: inner.bridge.subscribe,
+    }
+    const store = createRichEditorStore().create()
+    store.actions.setOpen(true)
+    render(<EditorPanel {...{
+      useStore: bindSnapshotSelector(store),
+      actions: store.actions,
+      submit: vi.fn(() => Promise.resolve(true)),
+      composer: bridge,
+      t,
+    } as EditorPanelProps} />)
+    const content = screen.getByLabelText('Markdown 笔记本编辑器')
+    act(() => { content.focus() })
+    type('- 混排 mixed')
+    // The whole-doc replace leaves the caret where the empty doc had it (0);
+    // park it at the end like a real typist's caret before pressing Enter.
+    const view = notebookView()
+    act(() => { view.dispatch({ selection: { anchor: view.state.doc.length } }) })
+    pressNotebookEnter()
+    expect(content.contains(document.activeElement)).toBe(true)
+    expect(inner.bridge.getDraft()).toBe('- 混排 mixed\n- ')
+  })
 })

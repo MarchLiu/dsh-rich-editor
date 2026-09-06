@@ -40,9 +40,19 @@ type EditorCardProps = Omit<EditorPanelProps, keyof PropsRuntime<'conversation.i
 /**
  * Push the notebook's text into the native composer unless both surfaces
  * already agree (the equality guard breaks the sync echo loop).
+ *
+ * Focus guard: the native composer's draft write is a Lexical update that
+ * ends in `selectEnd()`, which moves the DOM selection into the composer's
+ * contenteditable. The selection lands asynchronously, so every mirrored
+ * keystroke — Enter and IME commits included — steals keyboard focus from
+ * the notebook right after the edit, and the next Enter then submits from
+ * the plain composer. When the keystroke started inside the notebook, focus
+ * is restored to the CodeMirror view immediately and again on the next
+ * animation frame (after Lexical's selectionchange has landed).
  */
 function pushToComposer(composer: RichEditorComposerBridge, text: string): void {
-  if (composer.getDraft() !== text) composer.setDraft(text)
+  if (composer.getDraft() === text) return
+  composer.setDraft(text)
 }
 
 /** The mounted editor card: one CodeMirror instance per open, draft in the store. */
@@ -82,6 +92,29 @@ function EditorCard({ useStore, actions, submit, composer, t }: EditorCardProps)
   const submitRef = useRef(doSubmit)
   submitRef.current = doSubmit
 
+  /**
+   * Put keyboard focus back into the notebook editor when it has been
+   * pulled away by the composer's mirrored-draft write (see pushToComposer).
+   * Checked synchronously and once more on the next animation frame, because
+   * Lexical's selection steal lands via a later selectionchange event.
+   */
+  const restoreFocus = (): void => {
+    const steal = (): void => {
+      const host = hostRef.current
+      if (host !== null && !host.contains(document.activeElement)) editorRef.current?.focus()
+    }
+    steal()
+    window.requestAnimationFrame(steal)
+  }
+
+  /** Mirror one notebook edit into the native composer, keeping notebook focus. */
+  const mirror = (text: string): void => {
+    const host = hostRef.current
+    const hadFocus = host !== null && host.contains(document.activeElement)
+    pushToComposer(composer, text)
+    if (hadFocus) restoreFocus()
+  }
+
   /** Close the panel, leaving the final notebook text in the native editor. */
   const close = (): void => {
     pushToComposer(composer, textRef.current)
@@ -109,7 +142,7 @@ function EditorCard({ useStore, actions, submit, composer, t }: EditorCardProps)
       onChange: (text) => {
         textRef.current = text
         actions.setText(text)
-        pushToComposer(composer, text)
+        mirror(text)
       },
       onSubmit: () => { void submitRef.current() },
     })
@@ -126,6 +159,9 @@ function EditorCard({ useStore, actions, submit, composer, t }: EditorCardProps)
       editorRef.current?.applyExternal(draft)
     })
     editor.focus()
+    // The handshake above may have written the draft into the composer;
+    // its async selection steal would land after this focus(), so guard it.
+    restoreFocus()
     return () => {
       unsubscribe()
       editor.destroy()

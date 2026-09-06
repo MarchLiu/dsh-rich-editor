@@ -126,6 +126,43 @@ describe('createMarkdownEditor', () => {
     host.remove()
   })
 
+  it('IME composition stays silent until compositionend, then flushes once', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const options = makeOptions({ initial: '' })
+    const editor = createMarkdownEditor(host, options)
+    const content = host.querySelector<HTMLElement>('.cm-content')
+    if (content === null) throw new Error('no content surface')
+    const view = viewOf(host)
+
+    // Open an IME session and type pinyin: CM applies composition updates as
+    // doc changes, but the panel must not mirror them (a mirrored write
+    // steals focus back and kills the IME mid-composition). A real browser
+    // bumps inputState.composing past 0 through its DOM-sync path, which
+    // programmatic dispatches skip — set the state the composition would hold.
+    content.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '' }))
+    expect(view.compositionStarted).toBe(true)
+    ;(view as unknown as { inputState: { composing: number } }).inputState.composing = 1
+    expect(view.composing).toBe(true)
+    view.dispatch({ changes: { from: 0, insert: 'shu' } })
+    expect(options.onChange).not.toHaveBeenCalled()
+
+    // Commit the IME: the browser replaces the composition text with the
+    // committed characters, then the flush reports the final document.
+    view.dispatch({ changes: { from: 0, to: 3, insert: '输' } })
+    content.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '输' }))
+    expect(options.onChange).not.toHaveBeenCalled()
+    await new Promise(resolve => requestAnimationFrame(resolve))
+    expect(options.onChange).toHaveBeenCalledWith('输')
+
+    // Ordinary edits after the session still report immediately.
+    editor.setText('输入')
+    expect(options.onChange).toHaveBeenCalledWith('输入')
+
+    editor.destroy()
+    host.remove()
+  })
+
   it('parses GFM tables and strikethrough (markdownLanguage base, not CommonMark)', () => {
     const host = document.createElement('div')
     document.body.appendChild(host)
