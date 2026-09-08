@@ -77,8 +77,16 @@ function EditorCard({ useStore, actions, submit, composer, t }: EditorCardProps)
     const text = textRef.current
     if (text.trim() === '') return
     setSubmitting(true)
-    const ok = await submit(text)
-    setSubmitting(false)
+    // try/finally: a rejected injected verb must never strand the panel in
+    // the submitting state (both footer buttons disabled forever).
+    let ok = false
+    try {
+      ok = await submit(text)
+    } catch {
+      ok = false
+    } finally {
+      setSubmitting(false)
+    }
     if (!ok) return
     textRef.current = ''
     // Clearing the editor document fires onChange, which mirrors the empty

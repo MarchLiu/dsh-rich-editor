@@ -82,7 +82,14 @@ async function bench(options: {
   const theSession = { fake: 'session-face' }
   ctx.provide('sessions', {
     scope: () => options.scopeGone === true ? undefined : ctx,
-    sessionOf: () => theSession,
+    // `this`-dependent like the real controller (`this.scopes.get(id)`):
+    // locks the plugin into method-call syntax — a detached call crashes
+    // here exactly as it did against the live host (regression guard).
+    sessionOf(this: { scopes: Map<string, unknown> }) {
+      if (this.scopes.get('bound') !== true) throw new TypeError("Cannot read properties of undefined (reading 'scopes')")
+      return theSession
+    },
+    scopes: new Map([['bound', true]]),
   } as never)
   await ctx.plugin(SlotRegistry).await()
   ctx.slots.register({

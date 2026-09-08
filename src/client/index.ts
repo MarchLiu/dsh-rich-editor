@@ -77,13 +77,21 @@ export function apply(ctx: ClientContext): void {
         signal?: AbortSignal,
       ) => Promise<{ kind: 'success' | 'error'; text?: string }>
     }).sendSession
-    const sessionOf = (ctx.sessions as unknown as {
+    // Feature-detect through method-call syntax: `ctx.sessions` is a cordis
+    // traceable service proxy, so detaching `sessionOf` (const fn =
+    // ctx.sessions.sessionOf; fn(...)) drops its `this` and crashes inside
+    // the controller (`this.scopes` of undefined). Called as a method the
+    // proxy binds the shadow receiver and the call resolves normally; hosts
+    // without the face (and the test fake) degrade to the plain send.
+    const sessionsFace = ctx.sessions as unknown as {
       sessionOf?: (actx: unknown) => unknown
-    }).sessionOf
+    }
     // Older hosts (and the test fake) expose only the plain send face; the
     // snapshot's imageIds default to none there.
     const imageIds = input.state.getSnapshot().imageIds ?? []
-    const session = typeof sessionOf === 'function' ? sessionOf(actx) : undefined
+    const session = imageIds.length > 0 && typeof sessionsFace.sessionOf === 'function'
+      ? sessionsFace.sessionOf(actx)
+      : undefined
     if (imageIds.length > 0 && typeof sendSession === 'function' && session !== undefined) {
       try {
         const outcome = await sendSession(session, text, imageIds, 'queue')
