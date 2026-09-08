@@ -58,11 +58,55 @@ export function apply(ctx: ClientContext): void {
     const actx = ctx.sessions.scope(sessionId)
     const conversation = actx?.get('conversation')
     if (actx === undefined || conversation === undefined) return false
+    const input = conversation.input.for(actx)
+
+    /**
+     * Attachment path: when the native composer holds pending attachments
+     * (images), the notebook text must ride out with them as ONE submission
+     * instead of a bare text send. The conversation controller's
+     * `sendSession(session, text, imageIds, mode)` is the exact primitive the
+     * composer's own default sink uses; it is public at runtime but absent
+     * from the narrow `IConversation` face, so feature-detect before use.
+     */
+    const sendSession = (conversation as unknown as {
+      sendSession?: (
+        session: unknown,
+        text: string,
+        imageIds: readonly unknown[],
+        mode: 'queue',
+        signal?: AbortSignal,
+      ) => Promise<{ kind: 'success' | 'error'; text?: string }>
+    }).sendSession
+    const sessionOf = (ctx.sessions as unknown as {
+      sessionOf?: (actx: unknown) => unknown
+    }).sessionOf
+    // Older hosts (and the test fake) expose only the plain send face; the
+    // snapshot's imageIds default to none there.
+    const imageIds = input.state.getSnapshot().imageIds ?? []
+    const session = typeof sessionOf === 'function' ? sessionOf(actx) : undefined
+    if (imageIds.length > 0 && typeof sendSession === 'function' && session !== undefined) {
+      try {
+        const outcome = await sendSession(session, text, imageIds, 'queue')
+        if (outcome.kind !== 'success') {
+          if (outcome.text !== undefined) input.notify('error', outcome.text)
+          return false
+        }
+      } catch (error: unknown) {
+        input.notify('error', error instanceof Error ? error.message : String(error))
+        return false
+      }
+      // Success: drop the sent ids from the composer rail (the byte payloads
+      // were released by sendSession's own retirement flow). The draft text
+      // clears through the panel's mirror path, exactly like a text-only send.
+      for (const id of imageIds) input.removeImage(id)
+      return true
+    }
+
     try {
       await conversation.send(text)
       return true
     } catch (error: unknown) {
-      conversation.input.for(actx).notify('error', error instanceof Error ? error.message : String(error))
+      input.notify('error', error instanceof Error ? error.message : String(error))
       return false
     }
   }

@@ -104,7 +104,23 @@ function EditorCard({ useStore, actions, submit, composer, t }: EditorCardProps)
       if (host !== null && !host.contains(document.activeElement)) editorRef.current?.focus()
     }
     steal()
-    window.requestAnimationFrame(steal)
+    // Two chained frames: Lexical's selection steal can land one frame after
+    // the dispatch that queued it, so a single rAF is not always enough.
+    window.requestAnimationFrame(() => {
+      steal()
+      window.requestAnimationFrame(steal)
+    })
+  }
+
+  /**
+   * Move keyboard focus into the native composer's contenteditable (the
+   * main edit area). Both surfaces live under the same composer seat, so
+   * the query scopes from the panel host and never crosses sessions.
+   * Takes the host explicitly: on unmount React nulls the ref before the
+   * cleanup runs, so the effect passes its captured element instead.
+   */
+  const focusNativeComposer = (input: HTMLElement | null): void => {
+    if (input !== null && input.isConnected) input.focus({ preventScroll: true })
   }
 
   /** Mirror one notebook edit into the native composer, keeping notebook focus. */
@@ -162,10 +178,25 @@ function EditorCard({ useStore, actions, submit, composer, t }: EditorCardProps)
     // The handshake above may have written the draft into the composer;
     // its async selection steal would land after this focus(), so guard it.
     restoreFocus()
+    // Capture the native composer's contenteditable at mount: both surfaces
+    // sit under the same composer seat, so the scoped query cannot cross
+    // sessions, and the element reference survives the panel's own unmount
+    // (when the host DOM is already gone).
+    const composerInputEl =
+      host.closest('[data-composer-seat]')?.querySelector('[data-composer-input]')
+    const composerInput = composerInputEl instanceof HTMLElement ? composerInputEl : null
     return () => {
       unsubscribe()
       editor.destroy()
       editorRef.current = null
+      // Close handoff (toggle button, close button, submit): the notebook is
+      // gone, so keyboard focus returns to the native composer below. The
+      // immediate call loses to the same-commit removal of the focused
+      // CodeMirror content (the browser resets activeElement to body), so
+      // retry on the next frame, after the panel's DOM has been dropped.
+      const handoff = (): void => { focusNativeComposer(composerInput) }
+      handoff()
+      window.requestAnimationFrame(handoff)
     }
     // Mount-once per open: the store holds the draft across re-renders, the
     // editor writes it; copy is fixed for the session's locale at mount.

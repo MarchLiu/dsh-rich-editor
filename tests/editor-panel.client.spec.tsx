@@ -190,12 +190,53 @@ describe('EditorPanel composer bridge', () => {
     expect(composer.getNative()).toBe('- 关闭前编辑')
   })
 
+  it('closing returns keyboard focus to the native composer input', async () => {
+    // Reproduce the composer seat's DOM: the dock panel and the native
+    // contenteditable share one [data-composer-seat] ancestor.
+    const seat = document.createElement('div')
+    seat.setAttribute('data-composer-seat', '')
+    const input = document.createElement('div')
+    input.setAttribute('data-composer-input', '')
+    input.setAttribute('contenteditable', 'true')
+    seat.appendChild(input)
+    // The panel mounts into its own wrapper so RTL's unmount cleanup cannot
+    // remove the fake composer input that shares the seat.
+    const dock = document.createElement('div')
+    seat.appendChild(dock)
+    document.body.appendChild(seat)
+    const store = createRichEditorStore().create()
+    store.actions.setOpen(true)
+    render(<EditorPanel {...{
+      useStore: bindSnapshotSelector(store),
+      actions: store.actions,
+      submit: vi.fn(() => Promise.resolve(true)),
+      composer: makeComposer().bridge,
+      t,
+    } as EditorPanelProps} />, { container: dock })
+    expect(screen.getByLabelText('Markdown 笔记本编辑器')).toBeTruthy()
+    act(() => {
+      store.actions.setOpen(false)
+    })
+    expect(screen.queryByLabelText('Markdown 笔记本编辑器')).toBeNull()
+    // The focus handoff rides the frame after the panel DOM is dropped.
+    await act(async () => {
+      await new Promise(resolve => requestAnimationFrame(resolve))
+    })
+    expect(document.activeElement).toBe(input)
+  })
+
   it('a successful submit clears the native composer draft too', async () => {
     const { composer } = mount({ text: '- 发送' })
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '发送笔记本内容' }))
     })
     expect(composer.getNative()).toBe('')
+  })
+
+  it('open moves keyboard focus from the main edit area into the notebook', () => {
+    mount()
+    const content = screen.getByLabelText('Markdown 笔记本编辑器')
+    expect(content.contains(document.activeElement)).toBe(true)
   })
 
   it('a mirrored edit restores notebook focus when the composer steals it', () => {
