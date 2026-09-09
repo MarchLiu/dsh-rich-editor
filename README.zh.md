@@ -6,7 +6,7 @@
 
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的第三方 Web 插件：输入区的富 Markdown 笔记本。浏览器半边向 `dsh-client-ui-conversation` 拥有的输入区贡献两个条目：工具行开关（`conversation.input.left`）与输入区上下文栈中的编辑卡片（`conversation.input.dock`）。两个条目共享同一个按会话作用域的 store 句柄，因此进行中的草稿在关闭/重开面板、表面重挂载后仍然保留；引擎按会话 id 切分 session store，每个会话各有自己的笔记本。
 
-编辑器是运行 Markdown 语言扩展的 CodeMirror 6 实例：草稿语法高亮（含 GFM 表格）、原生 undo/redo 与选区，以及 Codex 风格的 Enter 列表编辑——在非空列表项上按 Enter 打开下一项（有序标记 `1.` → `2.` 递增，复选项重新变为未勾选，缩进保留，光标在行中时拆分该项），在空列表项上按 Enter 删除标记、回到普通文本编辑。非列表行的 Enter 落回普通换行。`Mod+Enter` 提交。
+编辑器是运行 Markdown 语言扩展的 CodeMirror 6 实例：草稿语法高亮（含 GFM 表格）、原生 undo/redo 与选区，以及 Codex 风格的 Enter 列表编辑——在非空列表项上按 Enter 打开下一项（有序标记 `1.` → `2.` 递增，复选项重新变为未勾选，缩进保留，光标在行中时拆分该项），在空列表项上按 Enter 删除标记、回到普通文本编辑。非列表行的 Enter 落回普通换行。Tab 与 Shift-Tab 调整列表深度：列表项上按 Tab 缩进一级、按 Shift-Tab 升一级，最上一级列表项上按 Shift-Tab 退出列表（去掉标记与复选框、保留文字）；非列表行上两者均放行编辑器默认行为。`Mod+Enter` 提交。
 
 卡片顶边有一对**编辑 / 预览**标签。预览通过 `marked` 实时渲染草稿，并经 DOMPurify 消毒后才接触 DOM——它只是格式化 Markdown（GFM 表格、任务列表、围栏代码、引用块）的只读视图，绝不改动提交内容：草稿文本原样走发送通道。切到预览时 CodeMirror 宿主只是隐藏而非卸载，undo 历史与光标在往返后原样保留。
 

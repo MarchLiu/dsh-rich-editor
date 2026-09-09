@@ -65,6 +65,53 @@ function lineBounds(text: string, offset: number): { start: number; end: number 
   return { start, end: next === -1 ? text.length : next }
 }
 
+/** One list level of indentation: Tab adds it, Shift-Tab removes it. */
+const INDENT_UNIT = '  '
+
+/**
+ * Compute the Tab edit at the caret: on a list-item line, indent the whole
+ * line one level (Codex-style depth control); anything else declines (null)
+ * so the caller falls through to the default indent command.
+ * @param text - the whole document.
+ * @param cursor - the caret offset (selections are collapsed by the caller).
+ * @returns the edit to apply, or null when the caret line is not a list item.
+ */
+export function listTabEdit(text: string, cursor: number): ListEdit | null {
+  const { start, end } = lineBounds(text, cursor)
+  const item = parseListLine(text.slice(start, end))
+  if (item === null) return null
+  // Insert the unit before the line's leading whitespace; every caret on the
+  // line (inside the indent or after) shifts right with it.
+  return { from: start, to: start, insert: INDENT_UNIT, cursor: cursor + INDENT_UNIT.length }
+}
+
+/**
+ * Compute the Shift-Tab edit at the caret: on an indented list-item line,
+ * outdent one level; on a top-level list-item line, exit the list by erasing
+ * the marker (and checkbox) while keeping the item text; anything else
+ * declines (null).
+ * @param text - the whole document.
+ * @param cursor - the caret offset (selections are collapsed by the caller).
+ * @returns the edit to apply, or null when the caret line is not a list item.
+ */
+export function listUnindentEdit(text: string, cursor: number): ListEdit | null {
+  const { start, end } = lineBounds(text, cursor)
+  const line = text.slice(start, end)
+  const item = parseListLine(line)
+  if (item === null) return null
+  const width = Math.min(item.indent.length, INDENT_UNIT.length)
+  if (width > 0) {
+    // Nested item: strip up to one level of leading whitespace. The caret
+    // rides left with the deletion (it can sit inside the removed span, so
+    // clamp).
+    return { from: start, to: start + width, insert: '', cursor: Math.max(start, cursor - width) }
+  }
+  // Top-level item: exit the list environment — drop indent, marker and
+  // checkbox, keep the content, and land the caret where the text begins.
+  const contentStart = line.length - item.content.length
+  return { from: start, to: start + contentStart, insert: '', cursor: start }
+}
+
 /**
  * Compute the Enter edit at the caret, Codex-style:
  * - a non-empty list item continues the list on the next line (ordered

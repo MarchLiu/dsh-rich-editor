@@ -9,7 +9,8 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { tags } from '@lezer/highlight'
-import { listEnterEdit } from './markdown.ts'
+import type { ListEdit } from './markdown.ts'
+import { listEnterEdit, listTabEdit, listUnindentEdit } from './markdown.ts'
 
 /** Options of one mounted notebook editor. */
 export interface MarkdownEditorOptions {
@@ -74,12 +75,16 @@ export const markdownHighlightStyle = HighlightStyle.define([
   { tag: [tags.escape, tags.character], color: token('--shiki-token-parameter', '#e8590c') },
 ])
 
-/** Enter: continue/exit Markdown lists; decline leaves the default newline. */
-function continueList(view: EditorView): boolean {
+/**
+ * Run one pure list edit (markdown.ts) on the view: collapsed selections
+ * only, then a single dispatch with the computed change and caret. Returns
+ * false so the keymap falls through when the edit declines.
+ */
+function runListEdit(view: EditorView, compute: (text: string, cursor: number) => ListEdit | null): boolean {
   const main = view.state.selection.main
-  // A non-empty selection falls through to the default replace-with-newline.
+  // A non-empty selection falls through to the default behavior.
   if (!main.empty) return false
-  const edit = listEnterEdit(view.state.doc.toString(), main.head)
+  const edit = compute(view.state.doc.toString(), main.head)
   if (edit === null) return false
   view.dispatch({
     changes: { from: edit.from, to: edit.to, insert: edit.insert },
@@ -87,6 +92,11 @@ function continueList(view: EditorView): boolean {
     scrollIntoView: true,
   })
   return true
+}
+
+/** Enter: continue/exit Markdown lists; decline leaves the default newline. */
+function continueList(view: EditorView): boolean {
+  return runListEdit(view, listEnterEdit)
 }
 
 /**
@@ -99,6 +109,10 @@ export function buildExtensions(options: MarkdownEditorOptions): Extension[] {
   return [
     Prec.highest(keymap.of([
       { key: 'Enter', run: continueList },
+      // Tab / Shift-Tab retarget list depth: deeper, shallower, or out of the
+      // list; non-list lines decline to the default indent commands.
+      { key: 'Tab', run: view => runListEdit(view, listTabEdit) },
+      { key: 'Shift-Tab', run: view => runListEdit(view, listUnindentEdit) },
       { key: 'Mod-Enter', run: () => { options.onSubmit(); return true } },
     ])),
     history(),

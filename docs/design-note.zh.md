@@ -19,7 +19,7 @@ Status: implemented
 
 提交时解析会话作用域（`ctx.sessions.scope(id)`）并调用按作用域寻址的 `conversation.send(text)`——与普通输入框提交走的同一个动词——因此裁决、排队与 prompt 错误报告完全一致。发送被拒绝时浮现在该会话的输入机通知通道（`conversation.input.for(actx).notify`），面板保留草稿。
 
-编辑器是运行 `@codemirror/lang-markdown` 的 CodeMirror 6（用受维护依赖替代手搓的 undo/选区/粘贴）：感知 GFM 表格的高亮、原生历史，以及一个 `Prec.highest` 的 Enter 键映射，其行为放在纯函数 `listEnterEdit(text, cursor)`（markdown.ts）里：非空列表项 → 插入 `\n` + 缩进 + 标记（有序递增、复选重置为未勾选、行中光标拆分该项）；空列表项 → 抹掉标记行、回到普通文本；非列表行 → 拒绝并放行默认行为。`Mod-Enter` 提交。
+编辑器是运行 `@codemirror/lang-markdown` 的 CodeMirror 6（用受维护依赖替代手搓的 undo/选区/粘贴）：感知 GFM 表格的高亮、原生历史，以及一个 `Prec.highest` 的 Enter 键映射，其行为放在纯函数 `listEnterEdit(text, cursor)`（markdown.ts）里：非空列表项 → 插入 `\n` + 缩进 + 标记（有序递增、复选重置为未勾选、行中光标拆分该项）；空列表项 → 抹掉标记行、回到普通文本；非列表行 → 拒绝并放行默认行为。`Tab`/`Shift-Tab` 经由同一适配器调整列表深度（`listTabEdit` / `listUnindentEdit`）：Tab 将该项缩进一个 2 空格层级；Shift-Tab 去掉一层（光标落在被删空白内时收敛到行首）；最上一级的 Shift-Tab 抹掉标记与复选框、保留文字从而退出列表；非列表行拒绝。`Mod-Enter` 提交。
 
 ## 否决的替代方案
 

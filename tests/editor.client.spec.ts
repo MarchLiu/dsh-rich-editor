@@ -37,6 +37,11 @@ function pressEnter(content: HTMLElement) {
   content.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
 }
 
+/** Dispatch a real (Shift-)Tab keydown. */
+function pressKey(content: HTMLElement, key: 'Tab' | 'Enter', shift = false) {
+  content.dispatchEvent(new KeyboardEvent('keydown', { key, shiftKey: shift, bubbles: true, cancelable: true }))
+}
+
 describe('createMarkdownEditor', () => {
   it('mounts with the initial document and reports typed changes', () => {
     const host = document.createElement('div')
@@ -158,6 +163,40 @@ describe('createMarkdownEditor', () => {
     // Ordinary edits after the session still report immediately.
     editor.setText('输入')
     expect(options.onChange).toHaveBeenCalledWith('输入')
+
+    editor.destroy()
+    host.remove()
+  })
+
+  it('Tab and Shift-Tab retarget list depth through real keydowns', () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const options = makeOptions({ initial: '- 第一项' })
+    const editor = createMarkdownEditor(host, options)
+    const content = host.querySelector<HTMLElement>('.cm-content')
+    if (content === null) throw new Error('no content surface')
+    const view = viewOf(host)
+
+    // Tab on a list item indents it one level.
+    caretToEnd(view)
+    pressKey(content, 'Tab')
+    expect(options.onChange).toHaveBeenLastCalledWith('  - 第一项')
+
+    // Shift-Tab brings it back to the top level…
+    caretToEnd(view)
+    pressKey(content, 'Tab', true)
+    expect(options.onChange).toHaveBeenLastCalledWith('- 第一项')
+
+    // …and a second Shift-Tab exits the list: marker dropped, text kept.
+    caretToEnd(view)
+    pressKey(content, 'Tab', true)
+    expect(options.onChange).toHaveBeenLastCalledWith('第一项')
+
+    // On a plain (ex-list) line both keys decline to CodeMirror defaults:
+    // Shift-Tab does nothing to the text, and the doc stays plain.
+    caretToEnd(view)
+    pressKey(content, 'Tab', true)
+    expect(options.onChange).toHaveBeenLastCalledWith('第一项')
 
     editor.destroy()
     host.remove()
