@@ -68,6 +68,10 @@ export function apply(ctx: ClientContext): void {
      * composer's own default sink uses; it is public at runtime but absent
      * from the narrow `IConversation` face, so feature-detect before use.
      */
+    // Called with an explicit receiver: `sendSession` reads `this.draftImages`,
+    // so a detached call (`const fn = conversation.sendSession; fn(...)`) makes
+    // `this` undefined and crashes ("reading 'draftImages'"). The same cordis
+    // proxy rule noted for `sessionOf` below applies here.
     const sendSession = (conversation as unknown as {
       sendSession?: (
         session: unknown,
@@ -94,7 +98,7 @@ export function apply(ctx: ClientContext): void {
       : undefined
     if (imageIds.length > 0 && typeof sendSession === 'function' && session !== undefined) {
       try {
-        const outcome = await sendSession(session, text, imageIds, 'queue')
+        const outcome = await sendSession.call(conversation, session, text, imageIds, 'queue')
         if (outcome.kind !== 'success') {
           if (outcome.text !== undefined) input.notify('error', outcome.text)
           return false
