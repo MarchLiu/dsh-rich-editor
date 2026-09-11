@@ -1,0 +1,46 @@
+# Publish the plugin to npm via Trusted Publishing (OIDC).
+# No NPM_TOKEN secret and no OTP: npm authenticates this workflow through the
+# trusted-publisher configuration bound to the package on npmjs.com
+# (repository MarchLiu/dsh-rich-editor, workflow publish.yml, environment npm).
+# Trigger: push a semver tag, e.g. `git tag v0.5.2 && git push origin v0.5.2`.
+name: publish
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  id-token: write   # OIDC identity for npm trusted publishing + provenance
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Guard: the tag must point at the version being published.
+      - run: |
+          TAG="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$TAG" ]; then
+            echo "tag $GITHUB_REF_NAME does not match package version ($TAG)" >&2
+            exit 1
+          fi
+
+      - run: pnpm run build
+
+      # `--provenance` attaches build provenance; with trusted publishing the
+      # registry verifies the OIDC identity instead of an auth token.
+      - run: npm publish --access public --provenance
