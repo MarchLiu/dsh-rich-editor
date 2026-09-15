@@ -28,13 +28,13 @@ function mount() {
 describe('RichEditorToggle', () => {
   it('renders the tool-row button with its tooltip copy, unpressed while closed', () => {
     mount()
-    const button = screen.getByRole('button', { name: 'Markdown 笔记本 (Ctrl+E)' })
+    const button = screen.getByRole('button', { name: 'Markdown 笔记本 (Ctrl+Shift+E)' })
     expect(button.getAttribute('aria-pressed')).toBe('false')
   })
 
   it('click opens the panel store and the button reads pressed', () => {
     const store = mount()
-    const button = screen.getByRole('button', { name: 'Markdown 笔记本 (Ctrl+E)' })
+    const button = screen.getByRole('button', { name: 'Markdown 笔记本 (Ctrl+Shift+E)' })
     fireEvent.click(button)
     expect(store.getSnapshot().open).toBe(true)
     expect(button.getAttribute('aria-pressed')).toBe('true')
@@ -43,19 +43,20 @@ describe('RichEditorToggle', () => {
     expect(button.getAttribute('aria-pressed')).toBe('false')
   })
 
-  it('the global Cmd/Ctrl+E chord toggles the store (capture on document)', () => {
+  it('the global Cmd/Ctrl+Shift+E chord toggles the store (capture on document)', () => {
     const store = mount()
     const chord = (init: KeyboardEventInit): void => {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', ...init }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'E', ...init }))
     }
-    chord({ code: 'KeyE', metaKey: true, cancelable: true })
-    expect(store.getSnapshot().open).toBe(true)
-    chord({ code: 'KeyE', ctrlKey: true, cancelable: true })
-    expect(store.getSnapshot().open).toBe(false)
-    // Shift/Alt variants and non-E chords are left alone.
     chord({ code: 'KeyE', metaKey: true, shiftKey: true, cancelable: true })
-    chord({ code: 'KeyE', altKey: true, metaKey: true, cancelable: true })
-    chord({ code: 'KeyF', ctrlKey: true, cancelable: true })
+    expect(store.getSnapshot().open).toBe(true)
+    chord({ code: 'KeyE', ctrlKey: true, shiftKey: true, cancelable: true })
+    expect(store.getSnapshot().open).toBe(false)
+    // Plain Cmd+E stays free for in-editor emacs bindings (M-E = line end);
+    // alt variants and non-E chords are left alone.
+    chord({ code: 'KeyE', metaKey: true, cancelable: true })
+    chord({ code: 'KeyE', metaKey: true, shiftKey: true, altKey: true, cancelable: true })
+    chord({ code: 'KeyF', ctrlKey: true, shiftKey: true, cancelable: true })
     expect(store.getSnapshot().open).toBe(false)
   })
 })
