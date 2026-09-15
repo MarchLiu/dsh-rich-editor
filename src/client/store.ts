@@ -22,6 +22,8 @@ type RichEditorState = {
 type RichEditorActions = {
   setOpen: (draft: RichEditorState, open: boolean) => void
   setText: (draft: RichEditorState, text: string) => void
+  /** Flip `open` in place: the global shortcut toggles without reading first. */
+  toggleOpen: (draft: RichEditorState) => void
 }
 
 /**
@@ -36,6 +38,7 @@ export function createRichEditorStore(): EngineStoreHandle<RichEditorState, Rich
     actions: {
       setOpen: (d, open: boolean) => { d.open = open },
       setText: (d, text: string) => { d.text = text },
+      toggleOpen: (d) => { d.open = !d.open },
     },
   })
 }

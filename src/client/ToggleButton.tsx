@@ -9,6 +9,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { IconListPenOutline16, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import clsx from 'clsx'
 import type { createRichEditorStore } from './store.ts'
+import { toggleShortcutLabel, useToggleShortcut } from './shortcut.ts'
 import css from './ToggleButton.module.css'
 
 /** Full toggle props: tool-row runtime share & shared store seat & locale seat. */
@@ -20,13 +21,20 @@ export type RichEditorToggleProps =
 /** Tool-row toggle button: pressed state mirrors the store, clicks flip it. */
 export function RichEditorToggle({ useStore, actions, t }: RichEditorToggleProps) {
   const open = useStore(s => s.open)
+  // The always-mounted seat for the global Cmd/Ctrl+E toggle; the dock panel
+  // mounts and unmounts with `open`, so it cannot host a global listener.
+  // The flip is a store action, so no captured state can go stale between
+  // the keystroke and the write.
+  useToggleShortcut(actions.toggleOpen)
+  const tooltip = `${t('toggle.tooltip')} (${toggleShortcutLabel()})`
   return (
-    <Tooltip label={t('toggle.tooltip')} side="top" delayMs={500}>
+    <Tooltip label={tooltip} side="top" delayMs={500}>
       <button
         type="button"
         className={clsx(css.toggle, open && css.active)}
-        aria-label={t('toggle.tooltip')}
+        aria-label={tooltip}
         aria-pressed={open}
+        aria-keyshortcuts={toggleShortcutLabel()}
         onClick={() => { actions.setOpen(!open) }}
       >
         <IconListPenOutline16 size={16} />
