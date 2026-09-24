@@ -45,6 +45,23 @@ jobs:
 
       - run: pnpm run build
 
+      # Debug: decode the OIDC token claims (never print the raw token) so a
+      # trusted-publisher mismatch can be compared against the npmjs.com config.
+      - name: Debug OIDC claims
+        env:
+          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RESPONSE=$(curl -s -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm_registry")
+          OIDC=$(printf '%s' "$RESPONSE" | node -pe "JSON.parse(require('fs').readFileSync(0,'utf8')).value")
+          printf '%s' "$OIDC" | node -e "
+            let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{
+              const p=JSON.parse(Buffer.from(d.split('.')[1],'base64').toString());
+              for (const k of ['sub','repository','repository_owner','workflow','job_workflow_ref','environment','ref'])
+                console.log(k + ' = ' + (p[k] ?? '<absent>'));
+            });
+          "
+
       # `--provenance` attaches build provenance; with trusted publishing the
       # registry verifies the OIDC identity instead of an auth token.
       - run: npm publish --access public --provenance
