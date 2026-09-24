@@ -2,6 +2,7 @@
   "name": "@mars.liu/dsh-rich-editor",
   "description": "Third-party dsh web plugin: a rich Markdown notebook for the composer region — tool-row toggle plus a CodeMirror editor card with Codex-style list editing, submitted through the conversation service",
   "version": "0.6.0",
+  "packageManager": "pnpm@11.24.0",
   "publishConfig": {
     "access": "public"
   },
