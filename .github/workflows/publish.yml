@@ -30,6 +30,10 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+        env:
+          # The lockfile is frozen, so the release-age freshness guard adds
+          # nothing here and only breaks reproducible CI installs.
+          npm_config_minimum_release_age: 0
 
       # Guard: the tag must point at the version being published.
       - run: |
