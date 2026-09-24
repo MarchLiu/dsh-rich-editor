@@ -64,7 +64,7 @@ export function apply(ctx: ClientContext): void {
      * Attachment path: when the native composer holds pending attachments
      * (images), the notebook text must ride out with them as ONE submission
      * instead of a bare text send. The conversation controller's
-     * `sendSession(session, text, imageIds, mode)` is the exact primitive the
+     * `sendSession(session, text, attachmentIds, mode)` is the exact primitive the
      * composer's own default sink uses; it is public at runtime but absent
      * from the narrow `IConversation` face, so feature-detect before use.
      */
@@ -76,7 +76,7 @@ export function apply(ctx: ClientContext): void {
       sendSession?: (
         session: unknown,
         text: string,
-        imageIds: readonly unknown[],
+        attachmentIds: readonly unknown[],
         mode: 'queue',
         signal?: AbortSignal,
       ) => Promise<{ kind: 'success' | 'error'; text?: string }>
@@ -91,14 +91,14 @@ export function apply(ctx: ClientContext): void {
       sessionOf?: (actx: unknown) => unknown
     }
     // Older hosts (and the test fake) expose only the plain send face; the
-    // snapshot's imageIds default to none there.
-    const imageIds = input.state.getSnapshot().imageIds ?? []
-    const session = imageIds.length > 0 && typeof sessionsFace.sessionOf === 'function'
+    // snapshot's attachmentIds default to none there.
+    const attachmentIds = input.state.getSnapshot().attachmentIds ?? []
+    const session = attachmentIds.length > 0 && typeof sessionsFace.sessionOf === 'function'
       ? sessionsFace.sessionOf(actx)
       : undefined
-    if (imageIds.length > 0 && typeof sendSession === 'function' && session !== undefined) {
+    if (attachmentIds.length > 0 && typeof sendSession === 'function' && session !== undefined) {
       try {
-        const outcome = await sendSession.call(conversation, session, text, imageIds, 'queue')
+        const outcome = await sendSession.call(conversation, session, text, attachmentIds, 'queue')
         if (outcome.kind !== 'success') {
           if (outcome.text !== undefined) input.notify('error', outcome.text)
           return false
@@ -110,7 +110,7 @@ export function apply(ctx: ClientContext): void {
       // Success: drop the sent ids from the composer rail (the byte payloads
       // were released by sendSession's own retirement flow). The draft text
       // clears through the panel's mirror path, exactly like a text-only send.
-      for (const id of imageIds) input.removeImage(id)
+      for (const id of attachmentIds) input.removeAttachment(id)
       return true
     }
 

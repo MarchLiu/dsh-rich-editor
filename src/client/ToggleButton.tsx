@@ -6,7 +6,7 @@
 import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the ui-conversation SlotMap merge (the input.left entry).
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { IconListPenOutline16, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconListPenOutlineMedium, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import clsx from 'clsx'
 import type { createRichEditorStore } from './store.ts'
 import { toggleShortcutLabel, useToggleShortcut } from './shortcut.ts'
@@ -37,7 +37,7 @@ export function RichEditorToggle({ useStore, actions, t }: RichEditorToggleProps
         aria-keyshortcuts={toggleShortcutLabel()}
         onClick={() => { actions.setOpen(!open) }}
       >
-        <IconListPenOutline16 size={16} />
+        <IconListPenOutlineMedium size={16} />
       </button>
     </Tooltip>
   )
