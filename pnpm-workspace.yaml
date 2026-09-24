@@ -1,0 +1,8 @@
+packages:
+  - '.'
+
+# pnpm 11 enables a dependency release-age policy by default, which rejects
+# lockfile entries whose versions are too freshly published. The install in
+# CI is frozen to pnpm-lock.yaml, so the guard only breaks reproducible
+# installs without adding protection — disable it.
+minimumReleaseAge: 0
