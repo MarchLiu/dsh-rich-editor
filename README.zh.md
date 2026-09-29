@@ -32,6 +32,21 @@ pnpm install && pnpm run build && pnpm test
 
 要求 dsh 家族 `^0.1.2-alpha.5`（已发布到 npm；0.1.2 线移除了 `dsh-client-runtime` / `dsh-client-web-react`，其 API 现由 `dsh-client-store`、`dsh-client-ui-renderer`、`dsh-api-session-controller`、`dsh-session` 提供），以及挂载了 `dsh-client-ui-conversation` 的 dsh web 组合。
 
+### ⚠️ 兼容性提示（在 0.1.5-rc.x 上安装前必读）
+
+安装本插件会重新解析 profile 的共享 `@deepseek-ai/*` 依赖树。在 DSH `0.1.5-rc.1` / `0.1.5-rc.2` 上，这可能把 profile 落到**同一版本线里两个互不兼容的 `@deepseek-ai/*` 构建**——核心入口 `dsh-api-session-controller` 可能因此无法从 `dsh-attachment` 导入，导致 `dsh web` 完全无法启动（[#4](https://github.com/MarchLiu/dsh-rich-editor/issues/4)）。
+
+- **首次安装请先用独立 profile**（例如临时建一个 `web-test` profile），不要直接在日用 profile 上试。
+- **禁用插件不等于回滚。** 损坏发生在 `node_modules` 里已解析的包版本上，而不是插件清单里；切换插件条目或安全模式都不会重写这些版本，只有 pnpm 级操作才会重新解析依赖树。
+- **恢复方法**：移除本包即可重新解析依赖树，立即恢复一致的包组合：
+
+```sh
+dsh plugin --profile web remove @mars.liu/dsh-rich-editor
+dsh web   # 正常启动
+```
+
+本项目暂时不 pin `@deepseek-ai/*` 版本范围（pin 会与同 profile 里的其他插件互相冲突）。替代做法是：**每次发布前，对 npm 上当前 `latest` 标签起（含）往前的最近 5 个已发布版本做一轮可用性冒烟测试**，并在 README 标明该次发布验证过的兼容范围。若你安装的版本落在范围之外，首次安装请优先使用独立 profile。
+
 ### 开发说明
 
 npm 上的 `0.0.1-rc.1` dsh 快照只发布了浏览器 loader bundle——node 半边几乎无导出，且若干改名前的依赖名（`dsh-compact`、`dsh-user-interaction`、`dsh-type-meta`、`dsh-client-ui-slash`）从未发布。本仓库用两个手段绕开：

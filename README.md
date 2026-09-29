@@ -32,6 +32,21 @@ pnpm install && pnpm run build && pnpm test
 
 Requires the dsh family at `^0.1.2-alpha.5` (published on npm; the 0.1.2 line removed `dsh-client-runtime` / `dsh-client-web-react`, whose APIs now come from `dsh-client-store`, `dsh-client-ui-renderer`, `dsh-api-session-controller` and `dsh-session`) and a dsh web composition that mounts `dsh-client-ui-conversation`.
 
+### ⚠️ Compatibility notice (read before installing on 0.1.5-rc.x)
+
+Installing this plugin re-resolves the profile's shared `@deepseek-ai/*` dependency tree. On DSH `0.1.5-rc.1` / `0.1.5-rc.2`, this can land the profile on a **mutually incompatible pair of `@deepseek-ai/*` builds of the same version line** — the core `dsh-api-session-controller` entry may then fail to import from `dsh-attachment` and `dsh web` will not boot at all ([#4](https://github.com/MarchLiu/dsh-rich-editor/issues/4)).
+
+- **Try it in a dedicated profile first** (e.g. a scratch `web-test` profile), not your daily-driver one.
+- **Disabling the plugin is NOT a rollback.** The breakage lives in the resolved package versions under `node_modules`, not in the plugin manifest; toggling plugin entries or safe mode never rewrites them. Only a pnpm-level operation re-resolves the tree.
+- **Recovery**: removing the package re-resolves the dependency tree and restores a consistent pair immediately:
+
+```sh
+dsh plugin --profile web remove @mars.liu/dsh-rich-editor
+dsh web   # boots normally again
+```
+
+This project does not pin the `@deepseek-ai/*` range for now (pinning would fight other plugins in the same profile). Instead, every release is smoke-tested against the **5 most recent versions published on npm at or after the current `latest` tag** of the dsh family, and the README states the verified compatibility range for each release. If your installed versions fall outside that range, prefer a dedicated profile for the first install.
+
 ### Development notes
 
 The npm `0.0.1-rc.1` dsh snapshot ships browser loader bundles only — its node halves export almost nothing, and several pre-rename dependency names (`dsh-compact`, `dsh-user-interaction`, `dsh-type-meta`, `dsh-client-ui-slash`) were never published. This repo works around both:
