@@ -39,6 +39,14 @@ export interface MarkdownEditorHandle {
   applyExternal(text: string): void
   /** Move keyboard focus into the editor. */
   focus(): void
+  /** The main selection's caret as a document offset. */
+  caret(): number
+  /**
+   * Move keyboard focus into the editor with the caret parked at document
+   * offset `pos` (clamped): the surface-switch entry point that keeps a
+   * tracked position instead of the state's default placement.
+   */
+  focusAt(pos: number): void
   /** Tear the view down and remove its DOM. */
   destroy(): void
 }
@@ -182,6 +190,14 @@ export function createMarkdownEditor(host: HTMLElement, options: MarkdownEditorO
       })
     },
     focus(): void {
+      view.focus()
+    },
+    caret(): number {
+      return view.state.selection.main.head
+    },
+    focusAt(pos: number): void {
+      const clamped = Math.min(Math.max(0, pos), view.state.doc.length)
+      view.dispatch({ selection: { anchor: clamped } })
       view.focus()
     },
     destroy(): void {

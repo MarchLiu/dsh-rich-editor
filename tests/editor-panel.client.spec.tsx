@@ -364,4 +364,102 @@ describe('EditorPanel mixed Chinese/English and IME compatibility', () => {
     expect(content.contains(document.activeElement)).toBe(true)
     expect(inner.bridge.getDraft()).toBe('- 混排 mixed\n- ')
   })
+
+  describe('caret tracking across surface switches', () => {
+    /** Seat DOM shared by the panel and the fake native composer input. */
+    function mountWithSeat(native: string, caretAt: number | null) {
+      const seat = document.createElement('div')
+      seat.setAttribute('data-composer-seat', '')
+      const input = document.createElement('div')
+      input.setAttribute('data-composer-input', '')
+      input.setAttribute('contenteditable', 'true')
+      input.textContent = native
+      seat.appendChild(input)
+      const dock = document.createElement('div')
+      seat.appendChild(dock)
+      document.body.appendChild(seat)
+      if (caretAt !== null) {
+        const range = document.createRange()
+        range.setStart(input.firstChild!, caretAt)
+        range.collapse(true)
+        const selection = window.getSelection()!
+        selection.removeAllRanges()
+        selection.addRange(range)
+      }
+      const store = createRichEditorStore().create()
+      store.actions.setOpen(true)
+      const composer = makeComposer(native).bridge
+      render(<EditorPanel {...{
+        useStore: bindSnapshotSelector(store),
+        actions: store.actions,
+        submit: vi.fn(() => Promise.resolve(true)),
+        composer,
+        t,
+      } as EditorPanelProps} />, { container: dock })
+      const content = screen.getByLabelText('Markdown 笔记本编辑器')
+      const host = content.closest('.cm-editor')
+      if (!(host instanceof HTMLElement)) throw new Error('editor host not found')
+      const view = EditorView.findFromDOM(host)
+      if (view === null) throw new Error('editor view not found')
+      return { store, input, view, composer }
+    }
+
+    it('opening parks the notebook caret at the composer caret offset', () => {
+      const { view } = mountWithSeat('- 前半', 2)
+      expect(view.state.selection.main.head).toBe(2)
+      expect(screen.getByLabelText('Markdown 笔记本编辑器').contains(document.activeElement)).toBe(true)
+    })
+
+    it('opening with no composer caret keeps the default placement', () => {
+      const { view } = mountWithSeat('- 草稿', null)
+      expect(view.state.selection.main.head).toBe(0)
+    })
+
+    it('closing hands the notebook caret offset back to the composer', async () => {
+      // Native text keeps a real first text child for the selection assert.
+      const { store, input, view, composer } = mountWithSeat('- 起点', null)
+      act(() => { view.dispatch({ changes: { from: 0, insert: '- 关闭位置' } }) })
+      const end = view.state.doc.length
+      act(() => { view.dispatch({ selection: { anchor: end - 2 } }) })
+      // Mirror the close button's pushToComposer: the two surfaces agree on
+      // the text, so the caret offset transfers 1:1 instead of clamping.
+      const finalText = view.state.doc.toString()
+      act(() => { composer.setDraft(finalText) })
+      // Keep the fake input's DOM text in step with the bridge draft, like
+      // the real contenteditable would be after the mirrored write.
+      input.textContent = finalText
+      act(() => { store.actions.setOpen(false) })
+      await act(async () => {
+        await new Promise(resolve => requestAnimationFrame(resolve))
+      })
+      const selection = window.getSelection()!
+      expect(selection.rangeCount).toBe(1)
+      const range = selection.getRangeAt(0)
+      expect(range.startContainer).toBe(input.firstChild)
+      expect(range.startOffset).toBe(end - 2)
+      expect(document.activeElement).toBe(input)
+    })
+
+    it('returning to edit or split from preview refocuses the editor at its kept caret', () => {
+      mountWithSeat('', null)
+      const content = screen.getByLabelText('Markdown 笔记本编辑器')
+      const view = (() => {
+        const host = content.closest('.cm-editor')
+        return host instanceof HTMLElement ? EditorView.findFromDOM(host) : null
+      })()
+      if (view === null) throw new Error('editor view not found')
+      act(() => { view.dispatch({ selection: { anchor: 0 } }) })
+      fireEvent.click(screen.getByRole('tab', { name: '预览' }))
+      // Simulate the real focus loss the tab switch causes (jsdom's click
+      // does not move focus): drop the editor focus like the hidden host does.
+      act(() => {
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+      })
+      expect(content.contains(document.activeElement)).toBe(false)
+      fireEvent.click(screen.getByRole('tab', { name: '并列' }))
+      // The editor never unmounted, so its selection survived untouched.
+      expect(view.state.selection.main.head).toBe(0)
+      expect(content.contains(document.activeElement)).toBe(true)
+    })
+  })
 })

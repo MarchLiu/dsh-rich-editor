@@ -16,6 +16,7 @@ import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-cli
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import clsx from 'clsx'
 import { createMarkdownEditor, type MarkdownEditorHandle } from './editor.ts'
+import { caretOffsetIn, setCaretAt } from './caret.ts'
 import { renderMarkdown } from './preview.ts'
 import type { RichEditorComposerBridge, RichEditorInjected } from './slots.ts'
 import type { createRichEditorStore } from './store.ts'
@@ -68,10 +69,23 @@ function EditorCard({ useStore, actions, submit, composer, t }: EditorCardProps)
   // `split` keeps both surfaces visible side by side, preview mirroring the
   // draft as it is typed.
   const [mode, setMode] = useState<'edit' | 'preview' | 'split'>('edit')
+  // Surface-switch focus tracking: returning to an editing layout re-focuses
+  // the CodeMirror view, whose state selection never moved, so the caret is
+  // exactly where the typist left it before switching to preview.
+  const prevMode = useRef(mode)
   // Store-seat mirror of the draft: both editing paths write actions.setText,
   // so a store subscription re-renders the preview even when the keystrokes
   // land in the hidden editor or the native composer.
   const draft = useStore(s => s.text)
+
+  // Tab switches land in an effect, not the click handler: focus() on an
+  // element that is still `hidden` (preview round-trip) is a no-op, and the
+  // hidden attribute only clears after React re-renders this state change.
+  useEffect(() => {
+    if (prevMode.current === mode) return
+    prevMode.current = mode
+    if (mode !== 'preview') editorRef.current?.focus()
+  }, [mode])
 
   const doSubmit = async (): Promise<void> => {
     const text = textRef.current
@@ -149,6 +163,14 @@ function EditorCard({ useStore, actions, submit, composer, t }: EditorCardProps)
     const host = hostRef.current
     /* v8 ignore next -- defensive: the editor host div renders unconditionally, so the mount effect always finds it. */
     if (host === null) return
+    // Capture the native composer's contenteditable before any handshake
+    // write: the caret offset read now is the position the typist is coming
+    // from, and both surfaces hold the same text at this moment, so the
+    // offset transfers 1:1 into the CodeMirror document.
+    const composerInputEl =
+      host.closest('[data-composer-seat]')?.querySelector('[data-composer-input]')
+    const composerInput = composerInputEl instanceof HTMLElement ? composerInputEl : null
+    const openCaret = composerInput === null ? -1 : caretOffsetIn(composerInput)
     // Open handshake: a non-empty native draft wins (opening the notebook
     // adopts what the composer already holds); an empty composer instead
     // receives the notebook's kept draft, so both surfaces start equal.
@@ -183,18 +205,21 @@ function EditorCard({ useStore, actions, submit, composer, t }: EditorCardProps)
       editorRef.current?.applyExternal(draft)
     })
     editor.focus()
+    // Caret tracking on open: when the composer held a caret (mid-draft, not
+    // a fresh toggle from an empty box), park the notebook caret at the same
+    // text offset instead of the fresh state's position 0. focusAt clamps to
+    // the document length, covering any length drift from the handshake.
+    if (openCaret >= 0) editor.focusAt(openCaret)
     // The handshake above may have written the draft into the composer;
     // its async selection steal would land after this focus(), so guard it.
     restoreFocus()
-    // Capture the native composer's contenteditable at mount: both surfaces
-    // sit under the same composer seat, so the scoped query cannot cross
-    // sessions, and the element reference survives the panel's own unmount
-    // (when the host DOM is already gone).
-    const composerInputEl =
-      host.closest('[data-composer-seat]')?.querySelector('[data-composer-input]')
-    const composerInput = composerInputEl instanceof HTMLElement ? composerInputEl : null
     return () => {
       unsubscribe()
+      // Caret tracking on close: read the notebook caret while the view is
+      // still alive, then hand it back to the composer after its focus
+      // handoff — the mirrored draft is the same text, so the offset moves
+      // 1:1; setCaretAt clamps across any drift.
+      const closeCaret = editor.caret()
       editor.destroy()
       editorRef.current = null
       // Close handoff (toggle button, close button, submit): the notebook is
@@ -202,7 +227,10 @@ function EditorCard({ useStore, actions, submit, composer, t }: EditorCardProps)
       // immediate call loses to the same-commit removal of the focused
       // CodeMirror content (the browser resets activeElement to body), so
       // retry on the next frame, after the panel's DOM has been dropped.
-      const handoff = (): void => { focusNativeComposer(composerInput) }
+      const handoff = (): void => {
+        focusNativeComposer(composerInput)
+        if (composerInput !== null && closeCaret >= 0) setCaretAt(composerInput, closeCaret)
+      }
       handoff()
       window.requestAnimationFrame(handoff)
     }
