@@ -30,7 +30,7 @@ interface Bench {
   fiber: ReturnType<Context['plugin']>
   send: ReturnType<typeof vi.fn>
   notify: ReturnType<typeof vi.fn>
-  removeImage: ReturnType<typeof vi.fn>
+  removeAttachment: ReturnType<typeof vi.fn>
   entries: (name: 'conversation.input.left' | 'conversation.input.dock') => readonly { options: Record<string, unknown>; locale?: string }[]
   injectFace: (sessionId: SessionId) => RichEditorInjected | undefined
 }
@@ -50,7 +50,7 @@ async function bench(options: {
     ? Promise.reject(options.rejectsWith)
     : Promise.resolve())
   const notify = vi.fn()
-  const removeImage = vi.fn()
+  const removeAttachment = vi.fn()
   // The composer half of the fake input facade: a real snapshot store so a
   // mounted panel could sync against it (only the bridge path reads it).
   const inputState = createSnapshotStore<{ draft: string }>({ draft: '' })
@@ -58,8 +58,8 @@ async function bench(options: {
   const stateWithImages = options.imageIds === undefined
     ? inputState
     : (() => {
-        const store = createSnapshotStore<{ draft: string; imageIds: readonly string[] }>({
-          draft: '', imageIds: options.imageIds ?? [],
+        const store = createSnapshotStore<{ draft: string; attachmentIds: readonly string[] }>({
+          draft: '', attachmentIds: options.imageIds ?? [],
         })
         return store
       })()
@@ -70,7 +70,7 @@ async function bench(options: {
       for: () => ({
         notify,
         setDraft,
-        removeImage,
+        removeAttachment,
         state: {
           getSnapshot: () => stateWithImages.getSnapshot(),
           subscribe: (fn: () => void) => stateWithImages.subscribe(fn),
@@ -106,7 +106,7 @@ async function bench(options: {
     fiber,
     send,
     notify,
-    removeImage,
+    removeAttachment,
     entries: name => ctx.slots.entries(name) as never,
     injectFace: (sessionId) => {
       const entry = ctx.slots.entries('conversation.input.dock')[0]
@@ -150,8 +150,8 @@ describe('ui-rich-editor browser plugin', () => {
     expect(mode).toBe('queue')
     // The plain text-only send is bypassed, and the sent ids leave the rail.
     expect(b.send).not.toHaveBeenCalled()
-    expect(b.removeImage).toHaveBeenCalledWith('img-1')
-    expect(b.removeImage).toHaveBeenCalledWith('img-2')
+    expect(b.removeAttachment).toHaveBeenCalledWith('img-1')
+    expect(b.removeAttachment).toHaveBeenCalledWith('img-2')
   })
 
   it('a failed attachment submission keeps the draft and the attachment rail', async () => {
@@ -160,7 +160,7 @@ describe('ui-rich-editor browser plugin', () => {
     await b.fiber.await()
     await expect(b.injectFace(sid('s1'))?.submit('x')).resolves.toBe(false)
     expect(b.notify).toHaveBeenCalledWith('error', 'admission refused')
-    expect(b.removeImage).not.toHaveBeenCalled()
+    expect(b.removeAttachment).not.toHaveBeenCalled()
     expect(b.send).not.toHaveBeenCalled()
   })
 
@@ -170,7 +170,7 @@ describe('ui-rich-editor browser plugin', () => {
     await b.fiber.await()
     await expect(b.injectFace(sid('s1'))?.submit('x')).resolves.toBe(false)
     expect(b.notify).toHaveBeenCalledWith('error', 'wire down')
-    expect(b.removeImage).not.toHaveBeenCalled()
+    expect(b.removeAttachment).not.toHaveBeenCalled()
   })
 
   it('a host without the sendSession face degrades to the plain text send', async () => {
@@ -178,7 +178,7 @@ describe('ui-rich-editor browser plugin', () => {
     await b.fiber.await()
     await expect(b.injectFace(sid('s1'))?.submit('仅文本')).resolves.toBe(true)
     expect(b.send).toHaveBeenCalledWith('仅文本')
-    expect(b.removeImage).not.toHaveBeenCalled()
+    expect(b.removeAttachment).not.toHaveBeenCalled()
   })
 
   it('the dock inject hands the panel a working composer bridge', async () => {
