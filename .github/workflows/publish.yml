@@ -29,6 +29,11 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: pnpm
 
+      # Trusted Publishing (OIDC auth) requires npm >= 11.5.1; Node 22 ships
+      # npm 10.x, which silently skips the token exchange and the registry
+      # answers the unauthenticated PUT with a misleading 404.
+      - run: npm install -g npm@^11
+
       - run: pnpm install --frozen-lockfile
         env:
           # The lockfile is frozen, so the release-age freshness guard adds
