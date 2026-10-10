@@ -22,6 +22,14 @@ export interface RichEditorComposerBridge {
    * @returns the unsubscribe handle.
    */
   subscribe(fn: () => void): () => void
+  /**
+   * Open the native composer's file-picker dialog (the paperclip verb).
+   * Picked files ride the composer's own intake pipeline — uploads become
+   * attachment chips in the composer rail, so the notebook's next submit
+   * sends them out with the text as ONE submission (see the send path).
+   * @returns false when the running host exposes no picker face.
+   */
+  pickFiles(): boolean
 }
 
 /** Business verbs handed to the dock panel through its own inject. */

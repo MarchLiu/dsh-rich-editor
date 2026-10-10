@@ -15,6 +15,7 @@ import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-cli
 // Type-only: pulls the ui-conversation SlotMap merge (the input.dock entry).
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import clsx from 'clsx'
+import { IconPaperclipOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
 import { createMarkdownEditor, type MarkdownEditorHandle } from './editor.ts'
 import { caretOffsetIn, setCaretAt } from './caret.ts'
 import { renderMarkdown } from './preview.ts'
@@ -290,6 +291,19 @@ function EditorCard({ useStore, actions, submit, composer, t }: EditorCardProps)
           )}
         </div>
         <div className={css.footer}>
+          {/* Paperclip: opens the native composer's file picker. Picked files
+              become composer-rail attachment chips, so the next notebook
+              submit rides them out as one submission. */}
+          <button
+            type="button"
+            className={css.iconButton}
+            disabled={submitting}
+            onClick={() => { composer.pickFiles() }}
+            aria-label={t('panel.attach')}
+            title={t('panel.attach')}
+          >
+            <IconPaperclipOutlineMedium size={16} />
+          </button>
           <button
             type="button"
             className={clsx(css.button, css.secondary)}

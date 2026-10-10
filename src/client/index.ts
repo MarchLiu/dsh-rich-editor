@@ -139,6 +139,25 @@ export function apply(ctx: ClientContext): void {
         const input = resolve()
         return input === undefined ? () => {} : input.state.subscribe(fn)
       },
+      pickFiles: (): boolean => {
+        const actx = ctx.sessions.scope(sessionId)
+        const conversation = actx?.get('conversation')
+        if (actx === undefined || conversation === undefined) return false
+
+        /**
+         * The file-picker opener lives on the runtime InputHub (`pickFiles(id)`,
+         * which routes into the mounted composer's bound file intake) but is
+         * absent from the narrow `SessionInputResolver` type face — the same
+         * runtime-only shape as `sendSession` above, so feature-detect before
+         * use. Method-call syntax keeps the cordis proxy receiver intact.
+         */
+        const hub = conversation.input as unknown as {
+          pickFiles?: (id: SessionId) => void
+        }
+        if (typeof hub.pickFiles !== 'function') return false
+        hub.pickFiles(sessionId)
+        return true
+      },
     }
   }
 

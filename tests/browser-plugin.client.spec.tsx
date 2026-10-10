@@ -43,6 +43,8 @@ async function bench(options: {
   imageIds?: string[]
   /** How the runtime-only sendSession face settles; undefined = not exposed. */
   sendSession?: ReturnType<typeof vi.fn>
+  /** Runtime-only hub file-picker face; undefined = not exposed. */
+  pickFiles?: ReturnType<typeof vi.fn>
 } = {}): Promise<Bench> {
   const ctx = new Context()
   const send = vi.fn(() => options.rejectsWith !== undefined
@@ -67,6 +69,7 @@ async function bench(options: {
     send,
     sendSession: options.sendSession,
     input: {
+      pickFiles: options.pickFiles,
       for: () => ({
         notify,
         setDraft,
@@ -134,6 +137,20 @@ describe('ui-rich-editor browser plugin', () => {
     await b.fiber.await()
     await expect(b.injectFace(sid('s1'))?.submit('# 笔记')).resolves.toBe(true)
     expect(b.send).toHaveBeenCalledWith('# 笔记')
+  })
+
+  it('the composer bridge routes pickFiles to the runtime hub face', async () => {
+    const pickFiles = vi.fn()
+    const b = await bench({ pickFiles })
+    await b.fiber.await()
+    expect(b.injectFace(sid('s1'))?.composer.pickFiles()).toBe(true)
+    expect(pickFiles).toHaveBeenCalledWith(sid('s1'))
+  })
+
+  it('pickFiles degrades to false without a runtime hub face', async () => {
+    const b = await bench()
+    await b.fiber.await()
+    expect(b.injectFace(sid('s1'))?.composer.pickFiles()).toBe(false)
   })
 
   it('submit rides the composer attachments out with the text as one submission', async () => {

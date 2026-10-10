@@ -61,7 +61,7 @@ Drop both workarounds when the dsh family republishes a complete, installable cl
 - **Ordered renumbering is deferred** — continuing an ordered list increments the new item's marker, but editing or removing earlier items does not renumber the following ones.
 - **No `/` and `@` trigger integration yet** — the notebook does not participate in the slash-command and file-mention pipeline; those gestures belong to the plain composer below it.
 - **Draft is session-lifetime only** — the store keeps the draft across remounts and tab switches, but a full page reload discards it (no persistence key).
-- **No attachment intake** — pasting or dropping images into the notebook is not wired to the session's image attachment path.
+- **No attachment intake (drop/paste)** — the notebook panel itself does not accept dropped or pasted files; attachments go through the paperclip button in the panel footer, which opens the native composer's file picker — picked files become composer-rail attachments and ride out with the next notebook submit as one submission (file-picker entry only; dropping/pasting directly into the notebook still does nothing).
 - **The browser bundle inlines ~268 kB gzip of CodeMirror** — `@codemirror/lang-markdown` statically depends on `@codemirror/lang-html` (which pulls the JavaScript and CSS parsers) even with embedded code highlighting off (`codeLanguages: []`), and the client bundler inlines the whole chain; a deferred trim would split the editor mount behind a dynamic import.
 
 ## License

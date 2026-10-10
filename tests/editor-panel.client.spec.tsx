@@ -20,16 +20,19 @@ const t = makeTranslate(zh) as EditorPanelProps['t']
 afterEach(cleanup)
 
 /** Fake native-composer bridge backed by a real snapshot store. */
-function makeComposer(initial = ''): { bridge: RichEditorComposerBridge; setNative(text: string): void; getNative(): string } {
+function makeComposer(initial = ''): { bridge: RichEditorComposerBridge; setNative(text: string): void; getNative(): string; pick: ReturnType<typeof vi.fn> } {
   const store = createSnapshotStore({ draft: initial })
+  const pick = vi.fn(() => true)
   return {
     bridge: {
       getDraft: () => store.getSnapshot().draft,
       setDraft: (text: string) => { store.set({ draft: text }) },
       subscribe: (fn: () => void) => store.subscribe(fn),
+      pickFiles: pick as unknown as () => boolean,
     },
     setNative: (text: string) => { store.set({ draft: text }) },
     getNative: () => store.getSnapshot().draft,
+    pick,
   }
 }
 
@@ -188,6 +191,12 @@ describe('EditorPanel composer bridge', () => {
     fireEvent.click(screen.getByRole('button', { name: '关闭笔记本' }))
     expect(screen.queryByLabelText('Markdown 笔记本编辑器')).toBeNull()
     expect(composer.getNative()).toBe('- 关闭前编辑')
+  })
+
+  it('the paperclip opens the native composer file picker', () => {
+    const { composer } = mount()
+    fireEvent.click(screen.getByRole('button', { name: '添加附件' }))
+    expect(composer.pick).toHaveBeenCalledTimes(1)
   })
 
   it('closing returns keyboard focus to the native composer input', async () => {

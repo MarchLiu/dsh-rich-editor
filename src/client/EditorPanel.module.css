@@ -223,6 +223,33 @@
   border-top: 1px solid var(--dsw-alias-border-l1);
 }
 
+/* The footer's paperclip: a bare icon button pinned to the left edge,
+   visually matching the tool-row toggles (16px glyph, ghost hover). */
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: auto;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .button {
   height: 28px;
   padding: 0 12px;

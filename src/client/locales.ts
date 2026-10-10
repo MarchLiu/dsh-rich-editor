@@ -12,6 +12,7 @@ export const zh = {
   'panel.edit': '编辑',
   'panel.previewAria': '预览渲染结果',
   'panel.split': '并列',
+  'panel.attach': '添加附件',
 } satisfies Record<string, string>
 
 /** The richeditor namespace key union. */
@@ -29,4 +30,5 @@ export const en = {
   'panel.edit': 'Edit',
   'panel.previewAria': 'Preview the rendered result',
   'panel.split': 'Split',
+  'panel.attach': 'Attach files',
 } satisfies Record<RichEditorKey, string>
